@@ -17,26 +17,37 @@ O arquivo `apps/web/.env.development` já liga o mock. Abra [http://localhost:30
 
 | Variável | Exemplo | Função |
 | --- | --- | --- |
-| `NEXT_PUBLIC_API_URL` | `http://localhost:3333/api/v1` | Base da API **com** o prefixo `/api/v1`, sem barra no final. |
-| `NEXT_PUBLIC_API_MOCK` | `true` | `true` inicia o MSW no navegador e dispensa o backend. |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:3000/api/v1` | Base da API **com** o prefixo `/api/v1`, sem barra no final. |
+| `NEXT_PUBLIC_API_MOCK` | `false` | `true` inicia o MSW no navegador e dispensa o backend. O padrão é a API real. |
 
-Para apontar ao backend real, copie `.env.example` para `.env.local` e defina `NEXT_PUBLIC_API_MOCK=false`. O backend precisa aceitar a origem do web em `CORS_ORIGIN` (por exemplo `http://localhost:3000`). A autenticação desta sprint vai no header `Authorization`, não em cookie. O Swagger do backend fica em `/api/docs`.
+O `pnpm --filter web dev` sobe na porta **3001**. A API ocupa a 3000 e o `CORS_ORIGIN` do backend é `http://localhost:3001`. Swagger: `http://localhost:3000/api/docs`. A autenticação vai no header `Authorization`, não em cookie.
 
-## Contas de demonstração
+## Contas
 
-Senha de todas: `senha1234`.
+São as do seed do backend. A API real escuta em `http://localhost:3000` e o CORS dela libera `http://localhost:3001`, então o web sobe nessa porta:
 
-| E-mail | O que mostra |
-| --- | --- |
-| `ana.silva@pedeai.dev` | Duas empresas. Administradora na Padaria da Praça (pode gerenciar usuários) e gerente na Lanchonete Central (só consulta). |
-| `bruno.costa@pedeai.dev` | Caixa na Padaria da Praça. Nesta sprint o menu fica só com Início. |
-| `elisa.rocha@pedeai.dev` | Cozinha. |
+```bash
+pnpm --filter web dev
+```
 
-A senha precisa ter de 8 a 72 caracteres, com letra e número. `senha1234` atende.
+`NEXT_PUBLIC_API_MOCK` fica `false` por padrão. Para o modo sem backend, use `NEXT_PUBLIC_API_MOCK=true`.
 
-PDV, KDS, cardápio, pedidos e relatórios existem no catálogo de permissões, mas ficam fora do menu enquanto `UNRELEASED_MODULES_VISIBLE` em `src/lib/permissions.ts` for `false`.
+| E-mail | Senha | Papel |
+| --- | --- | --- |
+| `admin.pizzaria@pedeai.local` | `PizzariaAdmin1` | Admin da Pizzaria Bella Napoli |
+| `gerente.pizzaria@pedeai.local` | `PizzariaGerente1` | Gerente da pizzaria |
+| `caixa.pizzaria@pedeai.local` | `PizzariaCaixa1` | Caixa da pizzaria |
+| `garcom.pizzaria@pedeai.local` | `PizzariaGarcom1` | Garçom da pizzaria |
+| `cozinha.pizzaria@pedeai.local` | `PizzariaCozinha1` | Cozinha da pizzaria |
+| `multi@pedeai.local` | `MultiEmpresa1` | Garçom na pizzaria e gerente na Lanchonete do Zé |
 
-O link de redefinição, no mock, aceita o token `demo-reset` (senha da Ana): [http://localhost:3000/redefinir-senha?token=demo-reset](http://localhost:3000/redefinir-senha?token=demo-reset). O “esqueci minha senha” sempre responde com a mesma frase, tenha o e-mail cadastro ou não.
+A lanchonete tem o mesmo conjunto (`admin.lanchonete@pedeai.local` / `LanchoneteAdmin1`, e os outros papéis no mesmo formato).
+
+A senha precisa ter de 8 a 72 caracteres, com letra e número (só ASCII, como a API).
+
+PDV, KDS, cardápio, pedidos e relatórios existem no catálogo, mas ficam fora do menu enquanto `UNRELEASED_MODULES_VISIBLE` em `src/lib/permissions.ts` for `false`.
+
+No mock, o token `demo-reset` redefine a senha do admin da pizzaria: [http://localhost:3001/redefinir-senha?token=demo-reset](http://localhost:3001/redefinir-senha?token=demo-reset). Na API real o link sai no log do backend (`APP_URL` + `/redefinir-senha?token=`). O “esqueci minha senha” sempre mostra a mesma frase.
 
 ## Scripts
 

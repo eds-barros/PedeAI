@@ -12,7 +12,7 @@ O backend vive em `/backend`. O app web fica em `apps/web`. O workspace também 
 - Erros: `{statusCode, message, errors?: [{field, message}]}`. `message` em pt-BR. `errors` em validação (400) vai para os campos. Sem `errors`, a UI mostra `message` (é o caso do 403 e do 409).
 - Papéis: `ADMIN`, `GERENTE`, `CAIXA`, `GARCOM`, `COZINHA`. O papel é do vínculo com a empresa ativa.
 - IDs: UUID v4. O mock de demonstração ainda usa ids legíveis (`usr_ana`, `cmp_praca`) para as contas fixas; usuários criados na tela recebem UUID.
-- Access token: 15 min, só em memória. Refresh: 7 dias, opaco, em `sessionStorage`, rotação a cada uso, uma renovação em voo. Reúso do refresh revoga a sessão. Cookie `pedeai_session` guarda `userId`, `companyId`, `role` e `permissions` só para o proxy do Next. Não autoriza a API.
+- Access token: 15 min, só em memória. Refresh: 7 dias, opaco, em `sessionStorage`, rotação a cada uso, uma renovação em voo. Reúso do refresh revoga a sessão. 401 de sessão: `Sessão inválida ou expirada.` Cookie `pedeai_session` guarda `userId`, `companyId`, `role` e `permissions` só para o proxy do Next. Não autoriza a API.
 - Empresa ativa vem do token (`empresaId` / sessão). Troca só por `POST /auth/switch-company`. O access anterior passa a receber 401.
 - Login inválido, usuário sem vínculo ativo ou desativado: 401 `E-mail ou senha inválidos.`
 - Outra empresa: 404. Sem permissão: 403. Sem token, expirado, revogado ou vínculo inativo: 401. Último admin: 409. Rate limit: 429 com `Retry-After`.
@@ -59,7 +59,7 @@ Bearer + `{refreshToken}` → 204.
 
 `{token, newPassword}` → 204. Token ruim, expirado (1 h, uso único) ou de usuário sem acesso: 400 `Token inválido ou expirado.` Revoga os refresh do usuário. Senha: 8 a 72 caracteres, com letra e número.
 
-No mock, o token fixo `demo-reset` redefine a senha de `ana.silva@pedeai.dev`. Não há endpoint HTTP para ler o e-mail de teste.
+No mock, o token fixo `demo-reset` redefine a senha de `admin.pizzaria@pedeai.local`. Na API real o link sai no log do processo (não há endpoint HTTP de teste).
 
 ### `PATCH /auth/change-password`
 
@@ -87,8 +87,10 @@ ADMIN (`empresa:editar`). Corpo: `nomeFantasia`, `razaoSocial`, `telefone`, `ema
 
 ADMIN e GERENTE (`papeis:ler`).
 
+A resposta é um array, não um objeto `{ data }`:
+
 ```json
-{ "data": [{ "role": "CAIXA", "permissions": ["empresa:ler"] }] }
+[{ "role": "ADMIN", "label": "Administrador", "permissions": ["empresa:ler", "usuarios:gerenciar"] }]
 ```
 
 O formulário de usuário usa essa lista e, se a chamada falhar, os cinco papéis locais.
@@ -101,7 +103,7 @@ Resposta de usuário: `{id, name, email, role, active, createdAt, updatedAt}`.
 
 `usuarios:ler` (Admin e Gerente). Query `page`, `pageSize` (máx. 100), `search`, `role`, `active`. Sem `active`, lista todos, inclusive desativados.
 
-`{data, meta:{page, pageSize, total, totalPages}}`.
+`{data, meta:{page, pageSize, total, totalPages}}`. Com `total` 0, `totalPages` é 0.
 
 ### `POST /users`
 
@@ -117,7 +119,7 @@ Resposta de usuário: `{id, name, email, role, active, createdAt, updatedAt}`.
 
 `usuarios:gerenciar`. `{name?, role?}` → 200. E-mail não entra neste corpo.
 
-403 `Você não pode alterar o próprio papel ou status.` se o papel mudaria. 409 `A empresa precisa manter ao menos um administrador ativo.` ao rebaixar o último admin.
+403 `Você não pode alterar o próprio papel ou status.` se o papel mudaria. 409 `A empresa precisa ter ao menos um administrador ativo.` ao rebaixar ou desativar o último admin.
 
 ### `PATCH /users/:id/status`
 

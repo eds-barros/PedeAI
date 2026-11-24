@@ -3,6 +3,7 @@ import {
   hasPermission,
   isRole,
   permissionsForRole,
+  ROLE_LABEL,
   type ApiPermission,
   type Role,
 } from "@/lib/permissions";
@@ -22,9 +23,10 @@ type FieldError = { field: string; message: string };
 
 const SELF_FORBIDDEN = "Você não pode alterar o próprio papel ou status.";
 const EMAIL_CONFLICT = "Não foi possível cadastrar este e-mail.";
-const LAST_ADMIN = "A empresa precisa manter ao menos um administrador ativo.";
+const LAST_ADMIN = "A empresa precisa ter ao menos um administrador ativo.";
 const INVALID_TOKEN = "Token inválido ou expirado.";
 const INVALID_LOGIN = "E-mail ou senha inválidos.";
+const SESSAO = "Sessão inválida ou expirada.";
 
 const loginAttempts = new Map<string, { failures: number; blockedUntil: number }>();
 const forgotAttempts = new Map<string, number[]>();
@@ -96,11 +98,11 @@ function clientIp(request: Request) {
 
 function requireAccess(request: Request) {
   const access = readAccess(request);
-  if (!access?.companyId || !access.role) return { error: error(401, "Sessão expirada. Faça login de novo.") } as const;
+  if (!access?.companyId || !access.role) return { error: error(401, SESSAO) } as const;
   const membership = memberships.find(
     (item) => item.userId === access.sub && item.companyId === access.companyId && item.active,
   );
-  if (!membership) return { error: error(401, "Sessão expirada. Faça login de novo.") } as const;
+  if (!membership) return { error: error(401, SESSAO) } as const;
   return { access, membership } as const;
 }
 
@@ -169,11 +171,11 @@ export const handlers = [
 
   http.post("*/api/v1/auth/refresh", async ({ request }) => {
     const body = await readBody<{ refreshToken?: string }>(request);
-    if (!body?.refreshToken) return error(401, "Sessão expirada. Faça login de novo.");
+    if (!body?.refreshToken) return error(401, SESSAO);
     const payload = consumeRefresh(body.refreshToken);
-    if (!payload) return error(401, "Sessão expirada. Faça login de novo.");
+    if (!payload) return error(401, SESSAO);
     const session = sessionOf(payload.sid);
-    if (!session) return error(401, "Sessão expirada. Faça login de novo.");
+    if (!session) return error(401, SESSAO);
     return HttpResponse.json(
       issueTokenPair({
         sub: session.userId,
@@ -211,7 +213,7 @@ export const handlers = [
     if (passwordMessage) errors.push({ field: "newPassword", message: passwordMessage });
     if (errors.length) return error(400, "Não foi possível redefinir a senha.", errors);
     if (body?.token !== DEMO_RESET_TOKEN) return error(400, INVALID_TOKEN);
-    const ana = users.find((item) => item.email === "ana.silva@pedeai.dev");
+    const ana = users.find((item) => item.email === "admin.pizzaria@pedeai.local");
     if (!ana || !body.newPassword || activeCompanies(ana.id).length === 0) return error(400, INVALID_TOKEN);
     ana.password = body.newPassword;
     revokeUserSessions(ana.id);
@@ -223,7 +225,7 @@ export const handlers = [
     if ("error" in result) return result.error;
     const body = await readBody<{ currentPassword?: string; newPassword?: string }>(request);
     const user = users.find((item) => item.id === result.access.sub);
-    if (!user) return error(401, "Sessão expirada. Faça login de novo.");
+    if (!user) return error(401, SESSAO);
     const nextPassword = body?.newPassword ?? "";
     const errors: FieldError[] = [];
     if (!body?.currentPassword) errors.push({ field: "currentPassword", message: "Informe a senha atual." });
@@ -275,7 +277,7 @@ export const handlers = [
     const result = requireAccess(request);
     if ("error" in result) return result.error;
     const user = users.find((item) => item.id === result.access.sub);
-    if (!user) return error(401, "Sessão expirada. Faça login de novo.");
+    if (!user) return error(401, SESSAO);
     return HttpResponse.json({
       user: publicUser(user),
       companies: activeCompanies(user.id),
@@ -345,12 +347,13 @@ export const handlers = [
   http.get("*/api/v1/roles", ({ request }) => {
     const result = requirePermission(request, "papeis:ler");
     if ("error" in result) return result.error;
-    return HttpResponse.json({
-      data: (["ADMIN", "GERENTE", "CAIXA", "GARCOM", "COZINHA"] as const).map((role) => ({
+    return HttpResponse.json(
+      (["ADMIN", "GERENTE", "CAIXA", "GARCOM", "COZINHA"] as const).map((role) => ({
         role,
+        label: ROLE_LABEL[role],
         permissions: permissionsForRole(role),
       })),
-    });
+    );
   }),
 
   http.get("*/api/v1/users", ({ request }) => {
@@ -386,7 +389,7 @@ export const handlers = [
       .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
     const total = rows.length;
-    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
     const data = rows.slice((page - 1) * pageSize, page * pageSize);
     return HttpResponse.json({ data, meta: { page, pageSize, total, totalPages } });
   }),

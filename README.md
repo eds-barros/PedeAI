@@ -14,4 +14,4 @@ pnpm install
 pnpm --filter web dev
 ```
 
-O `dev` sobe o web em modo mock, sem o backend.
+O `dev` sobe o web em `http://localhost:3001` falando com a API em `http://localhost:3000/api/v1`. Para rodar sem backend, defina `NEXT_PUBLIC_API_MOCK=true`.

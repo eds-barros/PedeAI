@@ -1,5 +1,5 @@
 import type { Role } from "@/lib/permissions";
-import { DEMO_PASSWORD } from "@/mocks/demo-accounts";
+import { LANCHONETE_ID, PIZZARIA_ID } from "@/mocks/demo-accounts";
 
 export type Company = {
   id: string;
@@ -7,10 +7,10 @@ export type Company = {
   slug: string;
   logoUrl: string | null;
   razaoSocial: string;
-  cnpj: string;
-  telefone: string;
-  email: string;
-  endereco: string;
+  cnpj: string | null;
+  telefone: string | null;
+  email: string | null;
+  endereco: string | null;
 };
 export type DbUser = {
   id: string;
@@ -30,37 +30,26 @@ export type Membership = {
 
 export const companies: Company[] = [
   {
-    id: "cmp_praca",
-    name: "Padaria da Praça",
-    slug: "padaria-da-praca",
+    id: PIZZARIA_ID,
+    name: "Pizzaria Bella Napoli",
+    slug: "pizzaria-bella-napoli",
     logoUrl: null,
-    razaoSocial: "Padaria da Praça Ltda.",
-    cnpj: "12.345.678/0001-90",
-    telefone: "(11) 3000-1000",
-    email: "contato@padariadapraca.dev",
-    endereco: "Praça Central, 10",
+    razaoSocial: "Pizzaria Bella Napoli Ltda",
+    cnpj: "11222333000181",
+    telefone: "1133334444",
+    email: "contato@pizzaria.local",
+    endereco: "Rua das Pizzas, 100, São Paulo",
   },
   {
-    id: "cmp_central",
-    name: "Lanchonete Central",
-    slug: "lanchonete-central",
+    id: LANCHONETE_ID,
+    name: "Lanchonete do Zé",
+    slug: "lanchonete-do-ze",
     logoUrl: null,
-    razaoSocial: "Lanchonete Central Ltda.",
-    cnpj: "98.765.432/0001-10",
-    telefone: "(11) 3000-2000",
-    email: "contato@lanchonetecentral.dev",
-    endereco: "Rua do Comércio, 200",
-  },
-  {
-    id: "cmp_beco",
-    name: "Burger do Beco",
-    slug: "burger-do-beco",
-    logoUrl: null,
-    razaoSocial: "Burger do Beco Ltda.",
-    cnpj: "11.222.333/0001-44",
-    telefone: "(11) 3000-3000",
-    email: "contato@burgerdobeco.dev",
-    endereco: "Beco das Flores, 5",
+    razaoSocial: "Lanchonete do Zé Ltda",
+    cnpj: "22333444000192",
+    telefone: "1144445555",
+    email: "contato@lanchonete.local",
+    endereco: "Avenida dos Lanches, 50, São Paulo",
   },
 ];
 
@@ -75,85 +64,38 @@ function addUser(user: DbUser, links: Array<Omit<Membership, "userId" | "created
   }
 }
 
-const staff: Array<[string, string, Role, boolean]> = [
-  ["Helena", "Barbosa", "CAIXA", true],
-  ["Igor", "Cardoso", "GARCOM", true],
-  ["Júlia", "Dias", "COZINHA", true],
-  ["Kaio", "Freitas", "GERENTE", true],
-  ["Lara", "Gomes", "CAIXA", false],
-  ["Miguel", "Lima", "GARCOM", true],
-  ["Nina", "Martins", "COZINHA", true],
-  ["Otávio", "Nogueira", "CAIXA", true],
-  ["Paula", "Pinto", "GARCOM", true],
-  ["Rafael", "Ramos", "COZINHA", true],
-  ["Sara", "Teixeira", "GERENTE", true],
-  ["Tiago", "Vieira", "CAIXA", true],
-  ["Úrsula", "Barbosa", "GARCOM", false],
-  ["Vitor", "Cardoso", "COZINHA", true],
-  ["Wanda", "Dias", "CAIXA", true],
-  ["Yasmin", "Freitas", "GARCOM", true],
-  ["Caio", "Gomes", "COZINHA", true],
-  ["Eduarda", "Lima", "CAIXA", true],
+const STAFF: Array<[string, string, string, string, string, Role]> = [
+  ["11111111-1111-4111-8111-000000000001", "Admin Pizzaria", "admin.pizzaria@pedeai.local", "PizzariaAdmin1", PIZZARIA_ID, "ADMIN"],
+  ["11111111-1111-4111-8111-000000000002", "Gerente Pizzaria", "gerente.pizzaria@pedeai.local", "PizzariaGerente1", PIZZARIA_ID, "GERENTE"],
+  ["11111111-1111-4111-8111-000000000003", "Caixa Pizzaria", "caixa.pizzaria@pedeai.local", "PizzariaCaixa1", PIZZARIA_ID, "CAIXA"],
+  ["11111111-1111-4111-8111-000000000004", "Garçom Pizzaria", "garcom.pizzaria@pedeai.local", "PizzariaGarcom1", PIZZARIA_ID, "GARCOM"],
+  ["11111111-1111-4111-8111-000000000005", "Cozinha Pizzaria", "cozinha.pizzaria@pedeai.local", "PizzariaCozinha1", PIZZARIA_ID, "COZINHA"],
+  ["22222222-2222-4222-8222-000000000001", "Admin Lanchonete", "admin.lanchonete@pedeai.local", "LanchoneteAdmin1", LANCHONETE_ID, "ADMIN"],
+  ["22222222-2222-4222-8222-000000000002", "Gerente Lanchonete", "gerente.lanchonete@pedeai.local", "LanchoneteGerente1", LANCHONETE_ID, "GERENTE"],
+  ["22222222-2222-4222-8222-000000000003", "Caixa Lanchonete", "caixa.lanchonete@pedeai.local", "LanchoneteCaixa1", LANCHONETE_ID, "CAIXA"],
+  ["22222222-2222-4222-8222-000000000004", "Garçom Lanchonete", "garcom.lanchonete@pedeai.local", "LanchoneteGarcom1", LANCHONETE_ID, "GARCOM"],
+  ["22222222-2222-4222-8222-000000000005", "Cozinha Lanchonete", "cozinha.lanchonete@pedeai.local", "LanchoneteCozinha1", LANCHONETE_ID, "COZINHA"],
 ];
 
 export function seedDatabase() {
   users.splice(0, users.length);
   memberships.splice(0, memberships.length);
-
+  for (const [id, name, email, password, companyId, role] of STAFF) {
+    addUser({ id, name, email, password, ultimaEmpresaId: companyId }, [{ companyId, role, active: true }]);
+  }
   addUser(
     {
-      id: "usr_ana",
-      name: "Ana Silva",
-      email: "ana.silva@pedeai.dev",
-      password: DEMO_PASSWORD,
-      ultimaEmpresaId: "cmp_praca",
+      id: "33333333-3333-4333-8333-333333333333",
+      name: "Usuário Multiempresa",
+      email: "multi@pedeai.local",
+      password: "MultiEmpresa1",
+      ultimaEmpresaId: PIZZARIA_ID,
     },
     [
-      { companyId: "cmp_praca", role: "ADMIN", active: true },
-      { companyId: "cmp_central", role: "GERENTE", active: true },
+      { companyId: PIZZARIA_ID, role: "GARCOM", active: true },
+      { companyId: LANCHONETE_ID, role: "GERENTE", active: true },
     ],
   );
-  addUser(
-    { id: "usr_bruno", name: "Bruno Costa", email: "bruno.costa@pedeai.dev", password: DEMO_PASSWORD },
-    [{ companyId: "cmp_praca", role: "CAIXA", active: true }],
-  );
-  addUser(
-    { id: "usr_carla", name: "Carla Mendes", email: "carla.mendes@pedeai.dev", password: DEMO_PASSWORD },
-    [
-      { companyId: "cmp_praca", role: "GERENTE", active: true },
-      { companyId: "cmp_beco", role: "ADMIN", active: true },
-    ],
-  );
-  addUser(
-    { id: "usr_diego", name: "Diego Alves", email: "diego.alves@pedeai.dev", password: DEMO_PASSWORD },
-    [
-      { companyId: "cmp_praca", role: "GARCOM", active: true },
-      { companyId: "cmp_beco", role: "GARCOM", active: true },
-    ],
-  );
-  addUser(
-    { id: "usr_elisa", name: "Elisa Rocha", email: "elisa.rocha@pedeai.dev", password: DEMO_PASSWORD },
-    [
-      { companyId: "cmp_praca", role: "COZINHA", active: true },
-      { companyId: "cmp_central", role: "COZINHA", active: true },
-    ],
-  );
-  addUser(
-    { id: "usr_renata", name: "Renata Lopes", email: "renata.lopes@pedeai.dev", password: DEMO_PASSWORD },
-    [{ companyId: "cmp_central", role: "CAIXA", active: true }],
-  );
-  addUser(
-    { id: "usr_pedro", name: "Pedro Souza", email: "pedro.souza@pedeai.dev", password: DEMO_PASSWORD },
-    [{ companyId: "cmp_central", role: "GARCOM", active: true }],
-  );
-
-  staff.forEach(([first, last, role, active], index) => {
-    const email = `${first}.${last}`.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase() + "@pedeai.dev";
-    addUser(
-      { id: `usr_staff_${index + 1}`, name: `${first} ${last}`, email, password: DEMO_PASSWORD },
-      [{ companyId: "cmp_praca", role, active }],
-    );
-  });
 }
 
 seedDatabase();

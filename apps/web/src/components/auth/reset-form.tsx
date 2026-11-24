@@ -91,7 +91,7 @@ export function ResetForm() {
         {isSubmitting ? "Salvando…" : "Salvar senha"}
       </Button>
       {env.mock && token === DEMO_RESET_TOKEN ? (
-        <p className="text-xs text-muted">Token de demonstração reconhecido. Ele redefine a senha da Ana Silva.</p>
+        <p className="text-xs text-muted">Token de demonstração reconhecido. Ele redefine a senha do admin da pizzaria.</p>
       ) : null}
     </form>
   );

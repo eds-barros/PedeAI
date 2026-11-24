@@ -44,5 +44,5 @@ export function setUserStatus(id: string, active: boolean) {
 }
 
 export function listRoles() {
-  return api<{ data: RoleGrant[] }>("/roles");
+  return api<RoleGrant[]>("/roles");
 }

@@ -67,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function boot() {
       if (!tokenStore.getRefresh()) {
+        clearSessionCookies();
         if (!cancelled) setState({ ...empty, status: "anonymous" });
         return;
       }

@@ -59,7 +59,7 @@ export function UserFormDialog({
     let cancelled = false;
     listRoles()
       .then((result) => {
-        if (!cancelled && result.data.length > 0) setRoles(result.data.map((item) => item.role));
+        if (!cancelled && result.length > 0) setRoles(result.map((item) => item.role));
       })
       .catch(() => undefined);
     if (creating) {

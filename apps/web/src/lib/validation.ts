@@ -5,7 +5,7 @@ export const PASSWORD_HINT = "De 8 a 72 caracteres, com pelo menos uma letra e u
 export const PASSWORD_RULE = "A senha deve ter de 8 a 72 caracteres, com pelo menos uma letra e um número.";
 
 export function passwordError(value: string) {
-  if (value.length < 8 || value.length > 72 || !/\p{L}/u.test(value) || !/\p{N}/u.test(value)) {
+  if (value.length < 8 || value.length > 72 || !/[A-Za-z]/.test(value) || !/\d/.test(value)) {
     return PASSWORD_RULE;
   }
   return null;

@@ -95,6 +95,7 @@ export type UpdateUserInput = {
 
 export type RoleGrant = {
   role: Role;
+  label: string;
   permissions: string[];
 };
 
@@ -104,10 +105,10 @@ export type CurrentCompany = {
   slug: string;
   logoUrl: string | null;
   razaoSocial?: string;
-  cnpj?: string;
-  telefone?: string;
-  email?: string;
-  endereco?: string;
+  cnpj?: string | null;
+  telefone?: string | null;
+  email?: string | null;
+  endereco?: string | null;
 };
 
 export type UpdateCompanyInput = {
@@ -116,5 +117,5 @@ export type UpdateCompanyInput = {
   telefone?: string;
   email?: string;
   endereco?: string;
-  logoUrl?: string | null;
+  logoUrl?: string;
 };
