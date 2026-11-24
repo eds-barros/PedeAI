@@ -12,6 +12,7 @@
     "test": "NODE_OPTIONS='--experimental-require-module' jest --config jest.config.cjs",
     "test:cov": "NODE_OPTIONS='--experimental-require-module' jest --config jest.config.cjs --coverage",
     "test:e2e": "NODE_OPTIONS='--experimental-require-module' jest --config ./test/jest-e2e.json --runInBand",
+    "test:qa": "NODE_OPTIONS='--experimental-require-module' jest --config ./test/qa/jest-qa.json --runInBand",
     "seed": "prisma db seed",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
