@@ -9,7 +9,10 @@ describe("validação dos formulários", () => {
     expect(loginSchema.safeParse({ email: "ana.silva@pedeai.dev", password: "senha1234" }).success).toBe(true);
   });
 
-  it("confere a senha nova e impede repetir a atual", () => {
+  it("exige letra e número, entre 8 e 72, e senhas iguais", () => {
+    expect(resetSchema.safeParse({ newPassword: "abcdefgh", confirmPassword: "abcdefgh" }).success).toBe(false);
+    expect(resetSchema.safeParse({ newPassword: "12345678", confirmPassword: "12345678" }).success).toBe(false);
+    expect(resetSchema.safeParse({ newPassword: "ab1", confirmPassword: "ab1" }).success).toBe(false);
     expect(
       changePasswordSchema.safeParse({
         currentPassword: "senha1234",

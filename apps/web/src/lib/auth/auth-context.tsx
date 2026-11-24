@@ -22,14 +22,19 @@ type AuthState = {
   companies: CompanyMembership[];
   activeCompanyId: string | null;
   role: Role | null;
+  permissions: string[] | null;
 };
 
-type LoginResult = { next: "picker" | "app"; role: Role | null };
+type LoginResult = { next: "picker" | "app"; role: Role | null; permissions: string[] | null };
+
+type CompanySelection = Pick<SwitchCompanyResponse, "activeCompanyId" | "role"> & {
+  permissions: string[];
+};
 
 type AuthContextValue = AuthState & {
   login: (email: string, password: string) => Promise<LoginResult>;
   logout: () => Promise<void>;
-  selectCompany: (companyId: string) => Promise<SwitchCompanyResponse>;
+  selectCompany: (companyId: string) => Promise<CompanySelection>;
 };
 
 const empty: AuthState = {
@@ -38,12 +43,19 @@ const empty: AuthState = {
   companies: [],
   activeCompanyId: null,
   role: null,
+  permissions: null,
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function persist(userId: string, companyId: string, role: Role | "", pick: boolean) {
-  writeSessionHint({ userId, companyId, role }, pick);
+function persist(
+  userId: string,
+  companyId: string,
+  role: Role | "",
+  permissions: string[] | undefined,
+  pick: boolean,
+) {
+  writeSessionHint({ userId, companyId, role, permissions }, pick);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -69,11 +81,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           companies: me.companies,
           activeCompanyId: pick ? null : me.activeCompanyId,
           role: pick ? null : me.role,
+          permissions: pick ? null : me.permissions,
         });
         persist(
           me.user.id,
           pick ? "" : (me.activeCompanyId ?? ""),
           pick ? "" : (me.role ?? ""),
+          pick ? undefined : me.permissions,
           pick,
         );
       } catch {
@@ -97,20 +111,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const result = await loginRequest(email, password);
         tokenStore.setAccess(result.accessToken);
         tokenStore.setRefresh(result.refreshToken);
-        const pick = result.companies.length > 1;
-        const active =
-          result.companies.find((company) => company.id === result.activeCompanyId) ??
-          result.companies[0] ??
-          null;
+        const me = await getMe();
+        const pick = me.companies.length > 1;
         setState({
           status: "authenticated",
-          user: result.user,
-          companies: result.companies,
-          activeCompanyId: pick ? null : (active?.id ?? null),
-          role: pick ? null : (active?.role ?? null),
+          user: me.user,
+          companies: me.companies,
+          activeCompanyId: pick ? null : me.activeCompanyId,
+          role: pick ? null : me.role,
+          permissions: pick ? null : me.permissions,
         });
-        persist(result.user.id, pick ? "" : (active?.id ?? ""), pick ? "" : (active?.role ?? ""), pick);
-        return { next: pick ? "picker" : "app", role: pick ? null : (active?.role ?? null) };
+        persist(
+          me.user.id,
+          pick ? "" : (me.activeCompanyId ?? ""),
+          pick ? "" : (me.role ?? ""),
+          pick ? undefined : me.permissions,
+          pick,
+        );
+        return { next: pick ? "picker" : "app", role: pick ? null : me.role, permissions: pick ? null : me.permissions };
       },
       async logout() {
         try {
@@ -121,15 +139,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       },
       async selectCompany(companyId) {
-        const result = await switchCompanyRequest(companyId);
-        if (state.user) persist(state.user.id, result.activeCompanyId, result.role, false);
+        await switchCompanyRequest(companyId);
+        const me = await getMe();
+        if (!me.role || !me.activeCompanyId) {
+          throw new Error("Não foi possível entrar nesta empresa.");
+        }
+        const role = me.role;
+        if (me.user) persist(me.user.id, me.activeCompanyId, role, me.permissions, false);
         setState((current) => ({
           ...current,
           status: "authenticated",
-          activeCompanyId: result.activeCompanyId,
-          role: result.role,
+          user: me.user,
+          companies: me.companies,
+          activeCompanyId: me.activeCompanyId,
+          role: me.role,
+          permissions: me.permissions,
         }));
-        return result;
+        return { activeCompanyId: me.activeCompanyId, role, permissions: me.permissions };
       },
     }),
     [router, state],

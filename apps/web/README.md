@@ -28,9 +28,13 @@ Senha de todas: `senha1234`.
 
 | E-mail | O que mostra |
 | --- | --- |
-| `ana.silva@pedeai.dev` | Duas empresas. Administradora na Padaria da Praça, gerente na Lanchonete Central. |
-| `bruno.costa@pedeai.dev` | Uma empresa. Caixa: menu sem usuários, KDS, cardápio e relatórios. |
+| `ana.silva@pedeai.dev` | Duas empresas. Administradora na Padaria da Praça (pode gerenciar usuários) e gerente na Lanchonete Central (só consulta). |
+| `bruno.costa@pedeai.dev` | Caixa na Padaria da Praça. Nesta sprint o menu fica só com Início. |
 | `elisa.rocha@pedeai.dev` | Cozinha. |
+
+A senha precisa ter de 8 a 72 caracteres, com letra e número. `senha1234` atende.
+
+PDV, KDS, cardápio, pedidos e relatórios existem no catálogo de permissões, mas ficam fora do menu enquanto `UNRELEASED_MODULES_VISIBLE` em `src/lib/permissions.ts` for `false`.
 
 O link de redefinição, no mock, aceita o token `demo-reset` (senha da Ana): [http://localhost:3000/redefinir-senha?token=demo-reset](http://localhost:3000/redefinir-senha?token=demo-reset). O “esqueci minha senha” sempre responde com a mesma frase, tenha o e-mail cadastro ou não.
 

@@ -4,6 +4,7 @@ import type {
   CreateUserInput,
   ListUsersQuery,
   Paginated,
+  RoleGrant,
   UpdateUserInput,
 } from "@/lib/api/types";
 
@@ -40,4 +41,8 @@ export function setUserStatus(id: string, active: boolean) {
     method: "PATCH",
     body: JSON.stringify({ active }),
   });
+}
+
+export function listRoles() {
+  return api<{ data: RoleGrant[] }>("/roles");
 }

@@ -10,30 +10,31 @@ import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
-import { ApiError, applyFieldErrors, createUser, getUser, setUserStatus, updateUser, type CompanyUser } from "@/lib/api";
-import { assignableRoles, ROLE_LABEL, type Role } from "@/lib/permissions";
-import { createUserSchema, editUserSchema, type CreateUserValues, type EditUserValues } from "@/lib/validation";
+import { ApiError, applyFieldErrors, createUser, getUser, listRoles, setUserStatus, updateUser, type CompanyUser } from "@/lib/api";
+import { ROLE_LABEL, ROLES, type Role } from "@/lib/permissions";
+import { createUserSchema, editUserSchema, PASSWORD_HINT, type CreateUserValues, type EditUserValues } from "@/lib/validation";
 
 export function UserFormDialog({
   open,
   mode,
   userId,
-  actorRole,
+  actorId,
   onClose,
   onSaved,
 }: {
   open: boolean;
   mode: "create" | "edit";
   userId?: string;
-  actorRole: Role;
+  actorId: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const toast = useToast();
   const [formError, setFormError] = useState<string | null>(null);
-  const roles = assignableRoles(actorRole);
+  const [roles, setRoles] = useState<Role[]>([...ROLES]);
   const creating = mode === "create";
-  const defaultRole = roles.includes("CAIXA") ? "CAIXA" : (roles[0] ?? "CAIXA");
+  const self = Boolean(userId && userId === actorId);
+  const defaultRole: Role = "CAIXA";
 
   const createForm = useForm<CreateUserValues>({
     resolver: zodResolver(createUserSchema),
@@ -41,7 +42,7 @@ export function UserFormDialog({
   });
   const editForm = useForm<EditUserValues>({
     resolver: zodResolver(editUserSchema),
-    defaultValues: { name: "", email: "", role: "CAIXA" },
+    defaultValues: { name: "", role: "CAIXA" },
   });
   const resetCreate = createForm.reset;
   const resetEdit = editForm.reset;
@@ -56,15 +57,22 @@ export function UserFormDialog({
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
+    listRoles()
+      .then((result) => {
+        if (!cancelled && result.data.length > 0) setRoles(result.data.map((item) => item.role));
+      })
+      .catch(() => undefined);
     if (creating) {
       resetCreate({ name: "", email: "", password: "", role: defaultRole });
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
     if (!userId) return;
     getUser(userId)
       .then((user) => {
         if (cancelled) return;
-        resetEdit({ name: user.name, email: user.email, role: user.role });
+        resetEdit({ name: user.name, role: user.role });
       })
       .catch((error: unknown) => {
         if (cancelled) return;
@@ -91,7 +99,7 @@ export function UserFormDialog({
     if (!userId) return;
     setFormError(null);
     try {
-      await updateUser(userId, values);
+      await updateUser(userId, self ? { name: values.name } : values);
       toast({ title: "Usuário atualizado", description: values.name, variant: "success" });
       onSaved();
     } catch (error) {
@@ -122,7 +130,7 @@ export function UserFormDialog({
             type="password"
             autoComplete="new-password"
             canReveal
-            hint="Mínimo de 8 caracteres."
+            hint={PASSWORD_HINT}
             error={createForm.formState.errors.password?.message}
             {...createForm.register("password")}
           />
@@ -144,8 +152,13 @@ export function UserFormDialog({
         <form className="grid gap-4" onSubmit={editForm.handleSubmit(submitEdit)} noValidate>
           <FormAlert message={formError} />
           <Input label="Nome" autoComplete="name" error={editForm.formState.errors.name?.message} {...editForm.register("name")} />
-          <Input label="E-mail" type="email" autoComplete="off" error={editForm.formState.errors.email?.message} {...editForm.register("email")} />
-          <RoleSelect error={editForm.formState.errors.role?.message} roles={roles} {...editForm.register("role")} />
+          <RoleSelect
+            error={editForm.formState.errors.role?.message}
+            roles={roles}
+            disabled={self}
+            hint={self ? "Você não pode alterar o próprio papel." : undefined}
+            {...editForm.register("role")}
+          />
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancelar
@@ -162,10 +175,10 @@ export function UserFormDialog({
 
 const RoleSelect = forwardRef<
   HTMLSelectElement,
-  { roles: Role[]; error?: string } & SelectHTMLAttributes<HTMLSelectElement>
->(function RoleSelect({ roles, error, ...props }, ref) {
+  { roles: Role[]; error?: string; hint?: string } & SelectHTMLAttributes<HTMLSelectElement>
+>(function RoleSelect({ roles, error, hint, ...props }, ref) {
   return (
-    <Select ref={ref} label="Papel nesta empresa" error={error} {...props}>
+    <Select ref={ref} label="Papel nesta empresa" error={error} hint={hint} {...props}>
       {roles.map((role) => (
         <option key={role} value={role}>
           {ROLE_LABEL[role]}

@@ -9,10 +9,10 @@ import { canAccessPath } from "@/lib/permissions";
 import { readPickCookie } from "@/lib/session-cookie";
 
 export function AppGate({ children }: { children: ReactNode }) {
-  const { status, role, activeCompanyId } = useAuth();
+  const { status, role, activeCompanyId, permissions } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
-  const allowed = role ? canAccessPath(role, pathname) : false;
+  const allowed = role ? canAccessPath(role, pathname, permissions) : false;
 
   useEffect(() => {
     if (status === "anonymous") {
@@ -25,8 +25,8 @@ export function AppGate({ children }: { children: ReactNode }) {
       router.replace("/selecionar-empresa");
       return;
     }
-    if (!canAccessPath(role, pathname)) router.replace("/acesso-negado");
-  }, [activeCompanyId, pathname, role, router, status]);
+    if (!canAccessPath(role, pathname, permissions)) router.replace("/acesso-negado");
+  }, [activeCompanyId, pathname, permissions, role, router, status]);
 
   if (status !== "authenticated" || !role || !activeCompanyId || !allowed) {
     return <FullScreenStatus label="Carregando o painel…" />;

@@ -27,7 +27,7 @@ export function proxy(request: NextRequest) {
 
   if (pathname === "/selecionar-empresa") return NextResponse.next();
 
-  if (hint.role && !canAccessPath(hint.role, pathname)) {
+  if (hint.role && !canAccessPath(hint.role, pathname, hint.permissions)) {
     return NextResponse.redirect(new URL("/acesso-negado", request.url));
   }
 

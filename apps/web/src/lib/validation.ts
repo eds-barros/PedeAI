@@ -1,9 +1,20 @@
 import { z } from "zod";
 import { ROLES } from "@/lib/permissions";
 
-export const passwordSchema = z
-  .string()
-  .min(8, "A senha deve ter pelo menos 8 caracteres.");
+export const PASSWORD_HINT = "De 8 a 72 caracteres, com pelo menos uma letra e um número.";
+export const PASSWORD_RULE = "A senha deve ter de 8 a 72 caracteres, com pelo menos uma letra e um número.";
+
+export function passwordError(value: string) {
+  if (value.length < 8 || value.length > 72 || !/\p{L}/u.test(value) || !/\p{N}/u.test(value)) {
+    return PASSWORD_RULE;
+  }
+  return null;
+}
+
+export const passwordSchema = z.string().superRefine((value, ctx) => {
+  const message = passwordError(value);
+  if (message) ctx.addIssue({ code: "custom", message });
+});
 
 export const emailSchema = z
   .string()
@@ -54,7 +65,10 @@ export const createUserSchema = z.object({
   role: roleSchema,
 });
 
-export const editUserSchema = createUserSchema.omit({ password: true });
+export const editUserSchema = z.object({
+  name: z.string().trim().min(2, "Informe o nome."),
+  role: roleSchema,
+});
 
 export type LoginValues = z.infer<typeof loginSchema>;
 export type ForgotValues = z.infer<typeof forgotSchema>;

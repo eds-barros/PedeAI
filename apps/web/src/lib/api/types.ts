@@ -37,6 +37,7 @@ export type MeResponse = {
   companies: CompanyMembership[];
   activeCompanyId: string | null;
   role: Role | null;
+  permissions: string[];
 };
 
 export type CompanyUser = {
@@ -45,6 +46,8 @@ export type CompanyUser = {
   email: string;
   role: Role;
   active: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type PageMeta = {
@@ -86,7 +89,32 @@ export type CreateUserInput = {
 };
 
 export type UpdateUserInput = {
-  name: string;
-  email: string;
+  name?: string;
+  role?: Role;
+};
+
+export type RoleGrant = {
   role: Role;
+  permissions: string[];
+};
+
+export type CurrentCompany = {
+  id: string;
+  nomeFantasia: string;
+  slug: string;
+  logoUrl: string | null;
+  razaoSocial?: string;
+  cnpj?: string;
+  telefone?: string;
+  email?: string;
+  endereco?: string;
+};
+
+export type UpdateCompanyInput = {
+  nomeFantasia?: string;
+  razaoSocial?: string;
+  telefone?: string;
+  email?: string;
+  endereco?: string;
+  logoUrl?: string | null;
 };

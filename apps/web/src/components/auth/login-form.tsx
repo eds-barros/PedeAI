@@ -40,7 +40,7 @@ export function LoginForm() {
         return;
       }
       const from = searchParams.get("from");
-      if (from && isSafePath(from) && result.role && canAccessPath(result.role, from)) {
+      if (from && isSafePath(from) && result.role && canAccessPath(result.role, from, result.permissions)) {
         router.replace(from);
         return;
       }

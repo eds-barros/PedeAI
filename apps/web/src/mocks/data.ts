@@ -1,22 +1,78 @@
 import type { Role } from "@/lib/permissions";
 import { DEMO_PASSWORD } from "@/mocks/demo-accounts";
 
-export type Company = { id: string; name: string };
-export type DbUser = { id: string; name: string; email: string; password: string };
-export type Membership = { userId: string; companyId: string; role: Role; active: boolean };
+export type Company = {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+  razaoSocial: string;
+  cnpj: string;
+  telefone: string;
+  email: string;
+  endereco: string;
+};
+export type DbUser = {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  ultimaEmpresaId?: string | null;
+};
+export type Membership = {
+  userId: string;
+  companyId: string;
+  role: Role;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export const companies: Company[] = [
-  { id: "cmp_praca", name: "Padaria da Praça" },
-  { id: "cmp_central", name: "Lanchonete Central" },
-  { id: "cmp_beco", name: "Burger do Beco" },
+  {
+    id: "cmp_praca",
+    name: "Padaria da Praça",
+    slug: "padaria-da-praca",
+    logoUrl: null,
+    razaoSocial: "Padaria da Praça Ltda.",
+    cnpj: "12.345.678/0001-90",
+    telefone: "(11) 3000-1000",
+    email: "contato@padariadapraca.dev",
+    endereco: "Praça Central, 10",
+  },
+  {
+    id: "cmp_central",
+    name: "Lanchonete Central",
+    slug: "lanchonete-central",
+    logoUrl: null,
+    razaoSocial: "Lanchonete Central Ltda.",
+    cnpj: "98.765.432/0001-10",
+    telefone: "(11) 3000-2000",
+    email: "contato@lanchonetecentral.dev",
+    endereco: "Rua do Comércio, 200",
+  },
+  {
+    id: "cmp_beco",
+    name: "Burger do Beco",
+    slug: "burger-do-beco",
+    logoUrl: null,
+    razaoSocial: "Burger do Beco Ltda.",
+    cnpj: "11.222.333/0001-44",
+    telefone: "(11) 3000-3000",
+    email: "contato@burgerdobeco.dev",
+    endereco: "Beco das Flores, 5",
+  },
 ];
 
 export const users: DbUser[] = [];
 export const memberships: Membership[] = [];
 
-function addUser(user: DbUser, links: Array<Omit<Membership, "userId">>) {
+function addUser(user: DbUser, links: Array<Omit<Membership, "userId" | "createdAt" | "updatedAt">>) {
   users.push(user);
-  for (const link of links) memberships.push({ userId: user.id, ...link });
+  const now = "2026-01-15T12:00:00.000Z";
+  for (const link of links) {
+    memberships.push({ userId: user.id, createdAt: now, updatedAt: now, ...link });
+  }
 }
 
 const staff: Array<[string, string, Role, boolean]> = [
@@ -45,7 +101,13 @@ export function seedDatabase() {
   memberships.splice(0, memberships.length);
 
   addUser(
-    { id: "usr_ana", name: "Ana Silva", email: "ana.silva@pedeai.dev", password: DEMO_PASSWORD },
+    {
+      id: "usr_ana",
+      name: "Ana Silva",
+      email: "ana.silva@pedeai.dev",
+      password: DEMO_PASSWORD,
+      ultimaEmpresaId: "cmp_praca",
+    },
     [
       { companyId: "cmp_praca", role: "ADMIN", active: true },
       { companyId: "cmp_central", role: "GERENTE", active: true },

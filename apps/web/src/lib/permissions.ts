@@ -1,6 +1,10 @@
 /**
- * Matriz única de permissões do frontend.
- * O papel é sempre o da empresa ativa. O proxy e o menu leem só daqui.
+ * Catálogo de permissões alinhado ao backend (papeis/permissoes).
+ * O menu e as ações usam a lista vinda do GET /me.
+ * Se ela não vier, a matriz por papel abaixo serve de fallback.
+ *
+ * Módulos sem API nesta sprint ficam fora do menu enquanto
+ * UNRELEASED_MODULES_VISIBLE for false.
  */
 
 export const ROLES = ["ADMIN", "GERENTE", "CAIXA", "GARCOM", "COZINHA"] as const;
@@ -15,28 +19,60 @@ export const ROLE_LABEL: Record<Role, string> = {
   COZINHA: "Cozinha",
 };
 
-const ALL_ROLES = ROLES;
+export const API_PERMISSIONS = [
+  "empresa:ler",
+  "empresa:editar",
+  "usuarios:ler",
+  "usuarios:gerenciar",
+  "papeis:ler",
+  "produtos:ler",
+  "produtos:gerenciar",
+  "pedidos:ler",
+  "pedidos:gerenciar",
+  "pdv:operar",
+  "caixa:operar",
+  "cozinha:operar",
+  "relatorios:ler",
+] as const;
 
-export const PERMISSIONS = {
-  "route:/": ALL_ROLES,
-  "route:/pdv": ["ADMIN", "GERENTE", "CAIXA"],
-  "route:/kds": ["ADMIN", "GERENTE", "COZINHA"],
-  "route:/cardapio": ["ADMIN", "GERENTE"],
-  "route:/pedidos": ["ADMIN", "GERENTE", "CAIXA", "GARCOM"],
-  "route:/relatorios": ["ADMIN", "GERENTE"],
-  "users:manage": ["ADMIN", "GERENTE"],
-  "users:assign-admin": ["ADMIN"],
-  "account:password": ALL_ROLES,
-} as const satisfies Record<string, readonly Role[]>;
+export type ApiPermission = (typeof API_PERMISSIONS)[number];
 
-export type Permission = keyof typeof PERMISSIONS;
+export type UnreleasedModule = "produtos" | "pedidos" | "pdv" | "caixa" | "cozinha" | "relatorios";
+
+/** Ligue para mostrar PDV, KDS, cardápio, pedidos e relatórios. */
+export const UNRELEASED_MODULES_VISIBLE = false;
+
+const ALL_PERMISSIONS: readonly ApiPermission[] = API_PERMISSIONS;
+
+const ROLE_PERMISSIONS: Record<Role, readonly ApiPermission[]> = {
+  ADMIN: ALL_PERMISSIONS,
+  GERENTE: ALL_PERMISSIONS.filter((item) => item !== "empresa:editar" && item !== "usuarios:gerenciar"),
+  CAIXA: ["empresa:ler", "produtos:ler", "pedidos:ler", "pedidos:gerenciar", "pdv:operar", "caixa:operar"],
+  GARCOM: ["empresa:ler", "produtos:ler", "pedidos:ler", "pedidos:gerenciar"],
+  COZINHA: ["empresa:ler", "produtos:ler", "pedidos:ler", "cozinha:operar"],
+};
+
+export function permissionsForRole(role: Role): ApiPermission[] {
+  return [...ROLE_PERMISSIONS[role]];
+}
+
+export function hasPermission(
+  permissions: readonly string[] | null | undefined,
+  needed: ApiPermission,
+  role?: Role | null,
+) {
+  if (permissions) return permissions.includes(needed);
+  if (role) return ROLE_PERMISSIONS[role].includes(needed);
+  return false;
+}
 
 export type RouteDefinition = {
   id: string;
   href: string;
   label: string;
   description: string;
-  permission: Permission;
+  permission: ApiPermission | null;
+  module?: UnreleasedModule;
   nav: boolean;
 };
 
@@ -45,8 +81,8 @@ export const ROUTES: readonly RouteDefinition[] = [
     id: "inicio",
     href: "/",
     label: "Início",
-    description: "Visão da empresa ativa e dos módulos liberados para o seu papel.",
-    permission: "route:/",
+    description: "Visão da empresa ativa e dos módulos liberados para você.",
+    permission: null,
     nav: true,
   },
   {
@@ -54,7 +90,8 @@ export const ROUTES: readonly RouteDefinition[] = [
     href: "/pdv",
     label: "PDV",
     description: "Lançar vendas, receber e fechar a conta.",
-    permission: "route:/pdv",
+    permission: "pdv:operar",
+    module: "pdv",
     nav: true,
   },
   {
@@ -62,7 +99,8 @@ export const ROUTES: readonly RouteDefinition[] = [
     href: "/kds",
     label: "KDS",
     description: "Acompanhar os pedidos na cozinha.",
-    permission: "route:/kds",
+    permission: "cozinha:operar",
+    module: "cozinha",
     nav: true,
   },
   {
@@ -70,7 +108,8 @@ export const ROUTES: readonly RouteDefinition[] = [
     href: "/cardapio",
     label: "Cardápio",
     description: "Montar produtos, preços e disponibilidade.",
-    permission: "route:/cardapio",
+    permission: "produtos:ler",
+    module: "produtos",
     nav: true,
   },
   {
@@ -78,7 +117,8 @@ export const ROUTES: readonly RouteDefinition[] = [
     href: "/pedidos",
     label: "Pedidos",
     description: "Ver e acompanhar os pedidos do salão.",
-    permission: "route:/pedidos",
+    permission: "pedidos:ler",
+    module: "pedidos",
     nav: true,
   },
   {
@@ -86,15 +126,16 @@ export const ROUTES: readonly RouteDefinition[] = [
     href: "/relatorios",
     label: "Relatórios",
     description: "Acompanhar o movimento da empresa.",
-    permission: "route:/relatorios",
+    permission: "relatorios:ler",
+    module: "relatorios",
     nav: true,
   },
   {
     id: "usuarios",
     href: "/usuarios",
     label: "Usuários",
-    description: "Convidar pessoas e definir o papel delas nesta empresa.",
-    permission: "users:manage",
+    description: "Pessoas com acesso a esta empresa e o papel de cada uma.",
+    permission: "usuarios:ler",
     nav: true,
   },
   {
@@ -102,7 +143,7 @@ export const ROUTES: readonly RouteDefinition[] = [
     href: "/conta/senha",
     label: "Alterar senha",
     description: "Trocar a senha da conta autenticada.",
-    permission: "account:password",
+    permission: null,
     nav: false,
   },
 ];
@@ -119,9 +160,9 @@ export function isRole(value: string): value is Role {
   return (ROLES as readonly string[]).includes(value);
 }
 
-export function can(role: Role | null | undefined, permission: Permission) {
-  if (!role) return false;
-  return (PERMISSIONS[permission] as readonly Role[]).includes(role);
+export function isModuleVisible(module?: UnreleasedModule) {
+  if (!module) return true;
+  return UNRELEASED_MODULES_VISIBLE;
 }
 
 export function matchRoute(pathname: string) {
@@ -133,15 +174,29 @@ export function matchRoute(pathname: string) {
     });
 }
 
-export function canAccessPath(role: Role | null, pathname: string) {
+export function canSeeRoute(
+  route: RouteDefinition,
+  role: Role | null,
+  permissions?: readonly string[] | null,
+) {
+  if (!isModuleVisible(route.module)) return false;
+  if (!route.permission) return role !== null || Boolean(permissions && permissions.length > 0);
+  return hasPermission(permissions, route.permission, role);
+}
+
+export function canAccessPath(
+  role: Role | null,
+  pathname: string,
+  permissions?: readonly string[] | null,
+) {
   if (pathname === "/selecionar-empresa" || pathname === "/acesso-negado") return true;
   const route = matchRoute(pathname);
   if (!route) return true;
-  return can(role, route.permission);
+  return canSeeRoute(route, role, permissions);
 }
 
-export function navItemsFor(role: Role) {
-  return NAV_ITEMS.filter((item) => can(role, item.permission));
+export function navItemsFor(role: Role | null, permissions?: readonly string[] | null) {
+  return NAV_ITEMS.filter((item) => canSeeRoute(item, role, permissions));
 }
 
 export function isNavActive(href: string, pathname: string) {
@@ -149,13 +204,6 @@ export function isNavActive(href: string, pathname: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Gerente opera a equipe, mas não cria nem edita administradores. */
-export function canManageTarget(actor: Role, target: Role) {
-  if (!can(actor, "users:manage")) return false;
-  if (target === "ADMIN" && !can(actor, "users:assign-admin")) return false;
-  return true;
-}
-
-export function assignableRoles(actor: Role): Role[] {
-  return ROLES.filter((role) => canManageTarget(actor, role));
+export function canManageUsers(role: Role | null, permissions?: readonly string[] | null) {
+  return hasPermission(permissions, "usuarios:gerenciar", role);
 }

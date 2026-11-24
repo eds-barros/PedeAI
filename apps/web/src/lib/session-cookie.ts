@@ -10,6 +10,7 @@ export type SessionHint = {
   userId: string;
   companyId: string;
   role: Role | "";
+  permissions?: string[];
 };
 
 export function serializeHint(hint: SessionHint) {
@@ -23,10 +24,14 @@ export function parseHint(value: string | undefined): SessionHint | null {
     if (!data.userId || typeof data.userId !== "string") return null;
     const role = typeof data.role === "string" ? data.role : "";
     if (role !== "" && !isRole(role)) return null;
+    const permissions = Array.isArray(data.permissions)
+      ? data.permissions.filter((item): item is string => typeof item === "string")
+      : undefined;
     return {
       userId: data.userId,
       companyId: typeof data.companyId === "string" ? data.companyId : "",
       role,
+      ...(permissions ? { permissions } : {}),
     };
   } catch {
     return null;

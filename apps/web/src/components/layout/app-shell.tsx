@@ -73,9 +73,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 }
 
 function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
-  const { role } = useAuth();
+  const { role, permissions } = useAuth();
   const pathname = usePathname();
-  const items = role ? navItemsFor(role) : [];
+  const items = role ? navItemsFor(role, permissions) : [];
 
   return (
     <div className="flex h-full flex-col">
@@ -181,7 +181,7 @@ function CompanySwitcher() {
       const result = await selectCompany(companyId);
       const name = companies.find((company) => company.id === companyId)?.name ?? "Empresa";
       toast({ title: "Empresa alterada", description: name, variant: "success" });
-      if (!canAccessPath(result.role, pathname)) router.replace("/");
+      if (!canAccessPath(result.role, pathname, result.permissions)) router.replace("/");
       else router.refresh();
     } catch (error) {
       const message = error instanceof ApiError ? error.message : "Não foi possível trocar de empresa.";

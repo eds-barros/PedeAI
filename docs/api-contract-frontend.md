@@ -1,221 +1,131 @@
 # Contrato de API esperado pelo frontend
 
-Base confirmada com o backend da Sprint 1. O cliente tipado está em `apps/web/src/lib/api` e o mock MSW em `apps/web/src/mocks`.
+Fonte: decisões do backend da Sprint 1 (revisões 1.1 e 1.2). Cliente em `apps/web/src/lib/api`. Mock em `apps/web/src/mocks`.
 
-O backend vive em `/backend` (pasta do outro time; este repositório de frontend não cria arquivos lá). O app web fica em `apps/web`.
+O backend vive em `/backend`. O app web fica em `apps/web`. O workspace também reserva `backend` para o pacote da API.
 
-## Base, versão e CORS
+## Base
 
-- Prefixo global: `/api/v1`.
-- `NEXT_PUBLIC_API_URL` aponta para a base **já com** `/api/v1`, sem barra no final. Exemplo: `http://localhost:3333/api/v1`.
-- Swagger do backend: `/api/docs` na origem do servidor (não fica sob `/api/v1`).
-- O backend libera o browser pela variável `CORS_ORIGIN` (a origem do web, por exemplo `http://localhost:3000`).
-- Nesta sprint a API **não** usa cookie de autenticação. O header `Authorization: Bearer <accessToken>` vai nas rotas autenticadas. `Access-Control-Allow-Credentials` não é necessário. Liberar os headers `Authorization` e `Content-Type`, e os métodos `GET`, `POST`, `PATCH` e `OPTIONS`.
+- Prefixo `/api/v1`. `NEXT_PUBLIC_API_URL` já inclui esse prefixo, sem barra no final.
+- Swagger: `/api/docs` na origem do servidor.
+- CORS via `CORS_ORIGIN` (exemplo `http://localhost:3000`). Auth no header `Authorization: Bearer`. Sem cookie de sessão na API.
+- Erros: `{statusCode, message, errors?: [{field, message}]}`. `message` em pt-BR. `errors` em validação (400) vai para os campos. Sem `errors`, a UI mostra `message` (é o caso do 403 e do 409).
+- Papéis: `ADMIN`, `GERENTE`, `CAIXA`, `GARCOM`, `COZINHA`. O papel é do vínculo com a empresa ativa.
+- IDs: UUID v4. O mock de demonstração ainda usa ids legíveis (`usr_ana`, `cmp_praca`) para as contas fixas; usuários criados na tela recebem UUID.
+- Access token: 15 min, só em memória. Refresh: 7 dias, opaco, em `sessionStorage`, rotação a cada uso, uma renovação em voo. Reúso do refresh revoga a sessão. Cookie `pedeai_session` guarda `userId`, `companyId`, `role` e `permissions` só para o proxy do Next. Não autoriza a API.
+- Empresa ativa vem do token (`empresaId` / sessão). Troca só por `POST /auth/switch-company`. O access anterior passa a receber 401.
+- Login inválido, usuário sem vínculo ativo ou desativado: 401 `E-mail ou senha inválidos.`
+- Outra empresa: 404. Sem permissão: 403. Sem token, expirado, revogado ou vínculo inativo: 401. Último admin: 409. Rate limit: 429 com `Retry-After`.
 
-## Erros
+## Permissões
 
-```json
-{
-  "statusCode": 400,
-  "message": "Revise os campos destacados.",
-  "errors": [{ "field": "email", "message": "Este e-mail já está em uso." }]
-}
-```
+`GET /me` devolve `permissions: string[]`. O menu e as ações usam essa lista. Se ela não vier, o frontend cai na matriz de `src/lib/permissions.ts`.
 
-- `message` em português do Brasil.
-- `errors` é opcional. `field` usa o mesmo nome do corpo (`email`, `password`, `currentPassword`, `newPassword`, `name`, `role`, `companyId`, `token`, `active`).
-- O frontend aplica `errors` nos campos do formulário (`react-hook-form`). Se não houver `errors`, mostra `message` num alerta.
+| Papel | Permissions |
+| --- | --- |
+| ADMIN | todas |
+| GERENTE | todas, exceto `empresa:editar` e `usuarios:gerenciar` |
+| CAIXA | `empresa:ler`, `produtos:ler`, `pedidos:ler`, `pedidos:gerenciar`, `pdv:operar`, `caixa:operar` |
+| GARCOM | `empresa:ler`, `produtos:ler`, `pedidos:ler`, `pedidos:gerenciar` |
+| COZINHA | `empresa:ler`, `produtos:ler`, `pedidos:ler`, `cozinha:operar` |
 
-## Papéis
+Catálogo: `empresa:ler`, `empresa:editar`, `usuarios:ler`, `usuarios:gerenciar`, `papeis:ler`, `produtos:ler`, `produtos:gerenciar`, `pedidos:ler`, `pedidos:gerenciar`, `pdv:operar`, `caixa:operar`, `cozinha:operar`, `relatorios:ler`.
 
-`ADMIN`, `GERENTE`, `CAIXA`, `GARCOM`, `COZINHA`. O papel é o da empresa ativa e viaja no access token depois do login ou de `switch-company`.
+Nesta sprint o menu esconde produtos, pedidos, pdv, caixa, cozinha e relatórios (`UNRELEASED_MODULES_VISIBLE = false`). Usuários aparece para quem tem `usuarios:ler`. Criar, editar e ativar/desativar exigem `usuarios:gerenciar` (só Admin).
 
-## Onde ficam os tokens
+## Auth
 
-Decisão da Sprint 1, já que o refresh vai no corpo e não em cookie:
+### `POST /auth/login`
 
-| Dado | Onde | Por quê |
-| --- | --- | --- |
-| Access token | Só em memória (variável de módulo) | Some no reload e não fica em `localStorage`. |
-| Refresh token | `sessionStorage` (`pedeai.refreshToken`) | Precisa sobreviver ao reload da aba. Morre quando a aba fecha e não é enviado sozinho em cada request. |
-| Hint de rota | Cookie `pedeai_session` (`userId`, `companyId`, `role`) | O `proxy.ts` do Next não lê `sessionStorage`. O cookie **não** é credencial. `SameSite=Lax`, `Secure` em HTTPS, sem `HttpOnly` porque o browser o grava. |
-| Escolha pendente | Cookie `pedeai_pick=1` | Depois do login com várias empresas, força a tela de escolha até a pessoa confirmar. |
+`{email, password}` → 200 `{accessToken, refreshToken, user:{id,name,email}, companies:[{id,name,role}], activeCompanyId}`.
 
-Renovação concorrente: `refreshSession()` guarda uma única promise em voo. Quem receber 401 espera essa promise e repete a chamada uma vez. Cada refresh bem-sucedido **substitui** o refresh token (rotação). Refresh inválido (401/403) apaga access, refresh e os cookies de hint.
+Empresa ativa: `ultimaEmpresaId` se o vínculo estiver ativo; senão o primeiro vínculo ativo em ordem alfabética do nome. Várias empresas: o frontend ainda abre a tela de escolha.
 
-Logout envia `{ refreshToken }` e limpa o estado local mesmo se a rede falhar.
+401 `E-mail ou senha inválidos.` 429 depois de 5 falhas em 15 min para o par IP+e-mail (bloqueio de 15 min) ou 20 req/15 min por IP. O mock cobre o par IP+e-mail.
 
-Evolução combinada para quando o backend puder: refresh em cookie `HttpOnly` + `Secure` + `SameSite`, e o frontend deixa de usar `sessionStorage`.
+### `POST /auth/refresh`
 
-## Rotas confirmadas
+`{refreshToken}` → 200 `{accessToken, refreshToken}`. 401 se inválido, expirado, revogado ou reusado.
 
-### `POST /api/v1/auth/login`
+### `POST /auth/logout`
 
-```json
-{ "email": "ana.silva@pedeai.dev", "password": "senha1234" }
-```
+Bearer + `{refreshToken}` → 204.
 
-`200`
+### `POST /auth/forgot-password`
 
-```json
-{
-  "accessToken": "...",
-  "refreshToken": "...",
-  "user": { "id": "usr_ana", "name": "Ana Silva", "email": "ana.silva@pedeai.dev" },
-  "companies": [
-    { "id": "cmp_praca", "name": "Padaria da Praça", "role": "ADMIN" },
-    { "id": "cmp_central", "name": "Lanchonete Central", "role": "GERENTE" }
-  ],
-  "activeCompanyId": "cmp_praca"
-}
-```
+`{email}` → 204 sempre, inclusive conta inexistente ou sem vínculo ativo. O mock responde 429 depois de 5 pedidos por hora no mesmo IP.
 
-`401` com `message` genérica (`E-mail ou senha inválidos.`) quando a credencial não confere. `403` quando a conta não tem empresa ativa.
+### `POST /auth/reset-password`
 
-O frontend, se `companies.length > 1`, ignora o `activeCompanyId` para a navegação e abre `/selecionar-empresa`. Com uma empresa, segue para o painel com o token já escopado.
+`{token, newPassword}` → 204. Token ruim, expirado (1 h, uso único) ou de usuário sem acesso: 400 `Token inválido ou expirado.` Revoga os refresh do usuário. Senha: 8 a 72 caracteres, com letra e número.
 
-### `POST /api/v1/auth/refresh`
+No mock, o token fixo `demo-reset` redefine a senha de `ana.silva@pedeai.dev`. Não há endpoint HTTP para ler o e-mail de teste.
 
-```json
-{ "refreshToken": "..." }
-```
+### `PATCH /auth/change-password`
 
-`200` `{ "accessToken", "refreshToken" }`. O refresh anterior deixa de valer. Sem cookie nesta sprint.
+Bearer `{currentPassword, newPassword}` → 204. Senha atual errada: 400 com `errors` em `currentPassword`. Mesma política de senha. Revoga os outros refresh; a sessão atual continua.
 
-### `POST /api/v1/auth/logout`
+### `POST /auth/switch-company`
 
-```json
-{ "refreshToken": "..." }
-```
+Bearer `{companyId}` → 200 `{accessToken, refreshToken, activeCompanyId, role}`. Sem vínculo ativo: 404 `Empresa não encontrada.` O frontend em seguida chama `GET /me` para pegar as permissions do novo papel.
 
-`204`. O mock também responde `204` se o token já foi usado.
+## Sessão e empresa
 
-### `POST /api/v1/auth/forgot-password`
+### `GET /me`
+
+`{user, companies, activeCompanyId, role, permissions}`. `companies` só traz vínculos ativos.
+
+### `GET /companies/current`
+
+Todo papel: `{id, nomeFantasia, slug, logoUrl}`. ADMIN e GERENTE também recebem `razaoSocial`, `cnpj`, `telefone`, `email`, `endereco`.
+
+### `PATCH /companies/current`
+
+ADMIN (`empresa:editar`). Corpo: `nomeFantasia`, `razaoSocial`, `telefone`, `email`, `endereco`, `logoUrl`. `cnpj` e `slug` não mudam.
+
+### `GET /roles`
+
+ADMIN e GERENTE (`papeis:ler`).
 
 ```json
-{ "email": "ana.silva@pedeai.dev" }
+{ "data": [{ "role": "CAIXA", "permissions": ["empresa:ler"] }] }
 ```
 
-Sempre `204`. A tela mostra a frase neutra: “Se existir uma conta com este e-mail, enviaremos um link para redefinir a senha.”
+O formulário de usuário usa essa lista e, se a chamada falhar, os cinco papéis locais.
 
-### `PATCH /api/v1/auth/change-password`
+## Usuários
 
-Autenticado.
+Resposta de usuário: `{id, name, email, role, active, createdAt, updatedAt}`.
 
-```json
-{ "currentPassword": "senha1234", "newPassword": "outra-senha" }
-```
+### `GET /users`
 
-`204`. Senha atual errada: `400` com `errors[{ field: "currentPassword" }]`.
+`usuarios:ler` (Admin e Gerente). Query `page`, `pageSize` (máx. 100), `search`, `role`, `active`. Sem `active`, lista todos, inclusive desativados.
 
-### `POST /api/v1/auth/switch-company`
+`{data, meta:{page, pageSize, total, totalPages}}`.
 
-Autenticado.
+### `POST /users`
 
-```json
-{ "companyId": "cmp_central" }
-```
+`usuarios:gerenciar` (só Admin). `{name, email, password, role}` → 201.
 
-`200`
+409 `Não foi possível cadastrar este e-mail.` se o e-mail já existe em qualquer empresa, inclusive vínculo desativado. Não cria vínculo com usuário existente e não devolve o id.
 
-```json
-{
-  "accessToken": "...",
-  "refreshToken": "...",
-  "activeCompanyId": "cmp_central",
-  "role": "GERENTE"
-}
-```
+### `GET /users/:id`
 
-### `GET /api/v1/me`
+`usuarios:ler`. 200 mesmo desativado (`active: false`). 404 se não pertence à empresa ativa.
 
-Autenticado.
+### `PATCH /users/:id`
 
-```json
-{
-  "user": { "id": "usr_ana", "name": "Ana Silva", "email": "ana.silva@pedeai.dev" },
-  "companies": [{ "id": "cmp_praca", "name": "Padaria da Praça", "role": "ADMIN" }],
-  "activeCompanyId": "cmp_praca",
-  "role": "ADMIN"
-}
-```
+`usuarios:gerenciar`. `{name?, role?}` → 200. E-mail não entra neste corpo.
 
-`companies` lista só vínculos ativos. Se o vínculo do token foi desativado, `activeCompanyId` e `role` vêm `null`.
+403 `Você não pode alterar o próprio papel ou status.` se o papel mudaria. 409 `A empresa precisa manter ao menos um administrador ativo.` ao rebaixar o último admin.
 
-### `GET /api/v1/users`
+### `PATCH /users/:id/status`
 
-Autenticado. Escopo: empresa do access token. Papéis `ADMIN` e `GERENTE`.
+`usuarios:gerenciar`. `{active}` → 200. Desativar a si mesmo: 403 com a mesma frase. Desativar o último admin: 409 com a frase do último admin.
 
-Query: `page` (default 1), `pageSize` (default 20, máximo 100), `search`, `role`, `active` (`true` ou `false`). Vazio significa “sem filtro”.
+## O que o mock não reproduz por completo
 
-`200`
-
-```json
-{
-  "data": [
-    {
-      "id": "usr_bruno",
-      "name": "Bruno Costa",
-      "email": "bruno.costa@pedeai.dev",
-      "role": "CAIXA",
-      "active": true
-    }
-  ],
-  "meta": { "page": 1, "pageSize": 20, "total": 23, "totalPages": 2 }
-}
-```
-
-`search` é substring, sem diferenciar maiúsculas, em nome ou e-mail. A ordenação do mock é por nome em `pt-BR`.
-
-## Rotas que a tela usa e o backend ainda não listou
-
-O mock implementa estas rotas para a Sprint 1 funcionar. Se o backend nomear diferente, o ajuste fica concentrado em `apps/web/src/lib/api` e `apps/web/src/mocks/handlers.ts`.
-
-### `POST /api/v1/auth/reset-password`
-
-```json
-{ "token": "demo-reset", "newPassword": "novasenha1" }
-```
-
-`204`. Token inválido: `400` com `message` “Link inválido ou expirado.”
-
-No modo mock, o token fixo `demo-reset` redefine a senha de `ana.silva@pedeai.dev`. O forgot-password não devolve o token.
-
-### `POST /api/v1/users`
-
-`201` com o usuário da empresa (`id`, `name`, `email`, `role`, `active`).
-
-```json
-{ "name": "Lia Prado", "email": "lia.prado@pedeai.dev", "password": "senha1234", "role": "CAIXA" }
-```
-
-E-mail já usado (em qualquer empresa, nesta sprint): `409` e `errors[{ field: "email" }]`.
-
-### `GET /api/v1/users/:id`
-
-`200` com o mesmo formato de item da lista, no escopo da empresa ativa. `404` se a pessoa não tem vínculo nessa empresa.
-
-### `PATCH /api/v1/users/:id`
-
-```json
-{ "name": "Lia Prado", "email": "lia.prado@pedeai.dev", "role": "GARCOM" }
-```
-
-`200` com o usuário atualizado.
-
-### `PATCH /api/v1/users/:id/status`
-
-```json
-{ "active": false }
-```
-
-`200` com o usuário atualizado.
-
-Regra de produto do frontend (o mock também aplica; o backend precisa confirmar):
-
-- `GERENTE` não cria, edita nem muda o status de um `ADMIN`, e não atribui o papel `ADMIN`.
-- Ninguém desativa a própria conta (`400`, “Você não pode desativar a própria conta.”).
-
-## Modo mock
-
-`NEXT_PUBLIC_API_MOCK=true` sobe o service worker do MSW antes de qualquer chamada. Contas e senha estão no README de `apps/web`.
+- bcrypt custo 12 e o tempo igual do 409 (o mock não hasheia).
+- 20 requisições de login por IP, além do par IP+e-mail.
+- Envio real de e-mail. O token de reset de demonstração é fixo.
+- Claim JWT `sid` assinada. O mock guarda a sessão em memória e recusa o access antigo depois do `switch-company`.

@@ -3,4 +3,5 @@ export { ApiError, applyFieldErrors } from "@/lib/api/errors";
 export { tokenStore } from "@/lib/api/tokens";
 export * from "@/lib/api/auth";
 export * from "@/lib/api/users";
+export * from "@/lib/api/companies";
 export type * from "@/lib/api/types";

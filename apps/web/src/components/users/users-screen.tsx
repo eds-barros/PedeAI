@@ -9,10 +9,11 @@ import { Select } from "@/components/ui/select";
 import { Table, type Column } from "@/components/ui/table";
 import { ApiError, listUsers, type CompanyUser, type PageMeta } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
-import { canManageTarget, ROLE_LABEL, ROLES, type Role } from "@/lib/permissions";
+import { canManageUsers, ROLE_LABEL, ROLES, type Role } from "@/lib/permissions";
 
 export function UsersScreen() {
-  const { role, user, companies, activeCompanyId } = useAuth();
+  const { role, user, companies, activeCompanyId, permissions } = useAuth();
+  const canManage = canManageUsers(role, permissions);
   const company = companies.find((item) => item.id === activeCompanyId);
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -82,37 +83,35 @@ export function UsersScreen() {
       header: "Situação",
       cell: (row) => (row.active ? "Ativo" : "Inativo"),
     },
-    {
-      key: "actions",
-      header: "Ações",
-      mobile: "stack",
-      cell: (row) => {
-        const allowed = canManageTarget(role, row.role);
-        const self = row.id === user.id;
-        const reason = !allowed
-          ? "Somente administradores alteram outro administrador."
-          : self && row.active
-            ? "Você não pode desativar a própria conta."
-            : undefined;
-        return (
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button type="button" size="sm" variant="secondary" disabled={!allowed} onClick={() => setEditingId(row.id)}>
-              Editar
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={row.active ? "danger" : "secondary"}
-              disabled={!allowed || (self && row.active)}
-              title={reason}
-              onClick={() => setStatusUser(row)}
-            >
-              {row.active ? "Desativar" : "Reativar"}
-            </Button>
-          </div>
-        );
-      },
-    },
+    ...(canManage
+      ? [
+          {
+            key: "actions",
+            header: "Ações",
+            mobile: "stack" as const,
+            cell: (row: CompanyUser) => {
+              const self = row.id === user.id;
+              return (
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button type="button" size="sm" variant="secondary" onClick={() => setEditingId(row.id)}>
+                    Editar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={row.active ? "danger" : "secondary"}
+                    disabled={self && row.active}
+                    title={self && row.active ? "Você não pode alterar o próprio papel ou status." : undefined}
+                    onClick={() => setStatusUser(row)}
+                  >
+                    {row.active ? "Desativar" : "Reativar"}
+                  </Button>
+                </div>
+              );
+            },
+          },
+        ]
+      : []),
   ];
 
   const from = meta && meta.total > 0 ? (meta.page - 1) * meta.pageSize + 1 : 0;
@@ -125,9 +124,11 @@ export function UsersScreen() {
           <h1 className="text-3xl font-semibold tracking-tight">Usuários</h1>
           <p className="mt-2 text-sm text-muted">Pessoas com acesso a {company?.name ?? "esta empresa"}.</p>
         </div>
-        <Button type="button" onClick={() => setCreating(true)}>
-          Novo usuário
-        </Button>
+        {canManage ? (
+          <Button type="button" onClick={() => setCreating(true)}>
+            Novo usuário
+          </Button>
+        ) : null}
       </div>
 
       <form
@@ -237,7 +238,7 @@ export function UsersScreen() {
       <UserFormDialog
         open={creating}
         mode="create"
-        actorRole={role}
+        actorId={user.id}
         onClose={() => setCreating(false)}
         onSaved={() => {
           setCreating(false);
@@ -249,7 +250,7 @@ export function UsersScreen() {
         open={Boolean(editingId)}
         mode="edit"
         userId={editingId ?? undefined}
-        actorRole={role}
+        actorId={user.id}
         onClose={() => setEditingId(null)}
         onSaved={() => {
           setEditingId(null);
