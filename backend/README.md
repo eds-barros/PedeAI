@@ -1,0 +1,70 @@
+# PedeAI — backend
+
+API NestJS (Fastify) da Sprint 1: autenticação, multiempresa, usuários e papéis. O contrato fechado está em [docs/decisoes-sprint1.md](docs/decisoes-sprint1.md). A documentação geral do repositório (README da raiz, `.env.example` da raiz e `CONTRIBUTING`) fica no [PR #1](https://github.com/eds-barros/PedeAI/pull/1); este pacote não duplica esses arquivos.
+
+Não havia `prisma/schema.prisma` na raiz. O schema foi criado em `backend/prisma/schema.prisma`, junto do pacote, sem caminho absoluto, para poder ir para `apps/api` depois.
+
+## Stack
+
+NestJS 12, Fastify, Prisma 6.19, PostgreSQL, JWT de acesso (15 min) e refresh opaco (7 dias, hash SHA-256).
+
+## Subir
+
+Postgres e API (o serviço `web` está comentado: `apps/web` ainda não está na main):
+
+```bash
+docker compose up --build
+```
+
+A API sobe em `http://localhost:3000`. Swagger: `http://localhost:3000/api/docs`. Saúde: `GET /api/v1/health`.
+
+O container da API roda `prisma migrate deploy`. O seed só roda se `SEED_ON_START=true` (já está assim no Compose) e recusa `NODE_ENV=production`.
+
+Sem Docker, só o banco e a API na máquina:
+
+```bash
+cd backend
+cp .env.example .env
+# aponte DATABASE_URL para o Postgres e preencha JWT_ACCESS_SECRET (16+ caracteres)
+npm ci
+npx prisma migrate deploy
+npm run seed
+npm run start:dev
+```
+
+## Testes
+
+```bash
+cd backend
+npm run lint
+npm test
+npm run test:cov
+npm run test:e2e
+npm run build
+```
+
+O e2e usa `DATABASE_URL` de `.env.test` (Postgres local `pedeai` / `pedeai` / banco `pedeai_test`). O `globalSetup` executa `prisma migrate reset --force` uma vez; cada arquivo trunca as tabelas antes de rodar. A CI sobe o Postgres como service.
+
+## Credenciais do seed
+
+Senhas com letra e número. A empresa ativa inicial do usuário multiempresa é a pizzaria (`ultimaEmpresaId`).
+
+| E-mail | Senha | Empresa | Papel |
+| --- | --- | --- | --- |
+| admin.pizzaria@pedeai.local | PizzariaAdmin1 | Pizzaria Bella Napoli | ADMIN |
+| gerente.pizzaria@pedeai.local | PizzariaGerente1 | Pizzaria Bella Napoli | GERENTE |
+| caixa.pizzaria@pedeai.local | PizzariaCaixa1 | Pizzaria Bella Napoli | CAIXA |
+| garcom.pizzaria@pedeai.local | PizzariaGarcom1 | Pizzaria Bella Napoli | GARCOM |
+| cozinha.pizzaria@pedeai.local | PizzariaCozinha1 | Pizzaria Bella Napoli | COZINHA |
+| admin.lanchonete@pedeai.local | LanchoneteAdmin1 | Lanchonete do Zé | ADMIN |
+| gerente.lanchonete@pedeai.local | LanchoneteGerente1 | Lanchonete do Zé | GERENTE |
+| caixa.lanchonete@pedeai.local | LanchoneteCaixa1 | Lanchonete do Zé | CAIXA |
+| garcom.lanchonete@pedeai.local | LanchoneteGarcom1 | Lanchonete do Zé | GARCOM |
+| cozinha.lanchonete@pedeai.local | LanchoneteCozinha1 | Lanchonete do Zé | COZINHA |
+| multi@pedeai.local | MultiEmpresa1 | Pizzaria (garçom) e Lanchonete (gerente) | os dois |
+
+O seed também grava pizzas, lanches e bebidas. Ele é idempotente (upsert por slug/CNPJ, e-mail e vínculo).
+
+## Ajustes de modelo
+
+Como o schema citado não existia, estas tabelas foram criadas aqui: `Empresa`, `Usuario` (com `senhaHash`, `ativo` global e `ultimaEmpresaId`), `UsuarioEmpresa` (papel por empresa), `Sessao` (`empresaAtivaId`, revogação; o `sid` do JWT), `RefreshToken` (hash), `TokenRedefinicaoSenha`, `Categoria`, `Produto`, `Pedido`, `ItemPedido`, `Caixa`, `MovimentoCaixa`. Papéis: `ADMIN`, `GERENTE`, `CAIXA`, `GARCOM`, `COZINHA`.

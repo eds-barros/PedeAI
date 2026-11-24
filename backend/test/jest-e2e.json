@@ -1,0 +1,12 @@
+{
+  "preset": "ts-jest",
+  "testEnvironment": "node",
+  "rootDir": "..",
+  "testRegex": "test/.*\\.e2e-spec\\.ts$",
+  "moduleFileExtensions": ["ts", "js", "json"],
+  "globalSetup": "<rootDir>/test/global-setup.ts",
+  "setupFiles": ["<rootDir>/test/setup-env.ts"],
+  "setupFilesAfterEnv": ["<rootDir>/test/truncate.ts"],
+  "maxWorkers": 1,
+  "testTimeout": 120000
+}

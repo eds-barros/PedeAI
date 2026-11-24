@@ -1,0 +1,64 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: pedeai
+      POSTGRES_PASSWORD: pedeai
+      POSTGRES_DB: pedeai
+    ports:
+      - "5432:5432"
+    volumes:
+      - pedeai_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pedeai -d pedeai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://pedeai:pedeai@postgres:5432/pedeai?schema=public
+      JWT_ACCESS_SECRET: altere-este-segredo-em-producao
+      JWT_ACCESS_TTL: 15m
+      JWT_REFRESH_TTL_DAYS: "7"
+      CORS_ORIGIN: http://localhost:3001
+      PORT: "3000"
+      APP_URL: http://localhost:3001
+      LOG_LEVEL: info
+      NODE_ENV: development
+      SEED_ON_START: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/v1/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  # web:
+  #   Frontend Next.js ainda não está na main (apps/web, outro PR).
+  #   build:
+  #     context: ./apps/web
+  #   ports:
+  #     - "3001:3000"
+  #   environment:
+  #     NEXT_PUBLIC_API_URL: http://api:3000/api/v1
+  #   depends_on:
+  #     api:
+  #       condition: service_healthy
+
+volumes:
+  pedeai_pg:
