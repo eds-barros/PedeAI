@@ -22,6 +22,7 @@ describe('Sprint 1 (e2e)', () => {
   let garcomId = '';
   let multiToken = '';
   let multiRefresh = '';
+  let corpoBruto: Buffer | undefined;
 
   beforeAll(async () => {
     prisma = new PrismaClient();
@@ -61,6 +62,13 @@ describe('Sprint 1 (e2e)', () => {
     const modulo = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = modulo.createNestApplication<NestFastifyApplication>(criarAdaptadorFastify(), { rawBody: true });
     configurarApp(app);
+    app.getHttpAdapter().getInstance().addHook(
+      'preHandler',
+      (req: { url?: string; rawBody?: Buffer }, _reply: unknown, done: (erro?: Error) => void) => {
+        if (req.url?.includes('/auth/login')) corpoBruto = req.rawBody;
+        done();
+      },
+    );
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
 
@@ -101,17 +109,11 @@ describe('Sprint 1 (e2e)', () => {
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
     );
 
-    const fastify = app.getHttpAdapter().getInstance();
-    let bruto: Buffer | undefined;
-    fastify.addHook('preHandler', (req, _reply, done) => {
-      if (req.url?.includes('/auth/login')) bruto = req.rawBody as Buffer | undefined;
-      done();
-    });
     await request(app.getHttpServer())
       .post('/api/v1/auth/login')
       .set('X-Forwarded-For', '203.0.113.10')
       .send({ email: 'nao-existe@pedeai.local', password: 'Senha123' });
-    expect(bruto?.toString()).toContain('nao-existe@pedeai.local');
+    expect(corpoBruto?.toString()).toContain('nao-existe@pedeai.local');
   });
 
   it('não distingue e-mail inexistente de senha errada', async () => {
@@ -249,11 +251,12 @@ describe('Sprint 1 (e2e)', () => {
     expect(me.body.permissions).toContain('empresa:editar');
     expect(me.body.role).toBe('ADMIN');
 
-    const rebaixar = await request(app.getHttpServer())
+    const proprio = await request(app.getHttpServer())
       .patch(`/api/v1/users/${(await idDe('admin.pizzaria@pedeai.local'))}/status`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ active: false });
-    expect(rebaixar.status).toBe(409);
+    expect(proprio.status).toBe(403);
+    expect(proprio.body.message).toBe('Você não pode alterar o próprio papel ou status.');
 
     const fraca = await request(app.getHttpServer())
       .post('/api/v1/users')

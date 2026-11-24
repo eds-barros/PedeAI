@@ -6,7 +6,7 @@ Não havia `prisma/schema.prisma` na raiz. O schema foi criado em `backend/prism
 
 ## Stack
 
-NestJS 12, Fastify, Prisma 6.19, PostgreSQL, JWT de acesso (15 min) e refresh opaco (7 dias, hash SHA-256).
+NestJS 11, Fastify, Prisma 6.19, PostgreSQL, JWT de acesso (15 min) e refresh opaco (7 dias, hash SHA-256). Nest 12 é só ESM e o Jest deste repositório carrega CommonJS.
 
 ## Subir
 

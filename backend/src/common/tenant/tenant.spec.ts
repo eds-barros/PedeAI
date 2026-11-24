@@ -3,7 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Papel } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { extrairEmpresaAtual, extrairUsuarioAtual, Papeis, Public } from './index';
+import { EmpresaAtual, extrairEmpresaAtual, extrairUsuarioAtual, Papeis, Public, UsuarioAtual } from './index';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { IS_PUBLIC_KEY } from './public.decorator';
 import { PAPEIS_KEY } from './papeis.decorator';
@@ -32,6 +32,8 @@ describe('decorators de tenant', () => {
   it('expõe usuário e empresa e recusa sessão ausente', () => {
     expect(Public()).toBeDefined();
     expect(Papeis(Papel.ADMIN)).toBeDefined();
+    expect(typeof UsuarioAtual()).toBe('function');
+    expect(typeof EmpresaAtual()).toBe('function');
     const req = { user: usuario() };
     expect(extrairUsuarioAtual(undefined, contexto(req)).id).toBe('u1');
     expect(extrairEmpresaAtual(undefined, contexto(req))).toBe('e1');

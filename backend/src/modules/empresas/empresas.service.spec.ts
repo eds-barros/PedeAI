@@ -49,5 +49,20 @@ describe('EmpresasService', () => {
       data: { nomeFantasia: 'Nova', email: 'a@b.c' },
     });
     expect(resposta).toMatchObject({ nomeFantasia: 'Nova', cnpj: '11222333000181' });
+    await service.atualizar('e1', {
+      razaoSocial: ' Nova Ltda ',
+      telefone: ' 119 ',
+      endereco: ' Rua 2 ',
+      logoUrl: ' https://cdn/logo.png ',
+    });
+    expect(prisma.empresa.update).toHaveBeenLastCalledWith({
+      where: { id: 'e1' },
+      data: {
+        razaoSocial: 'Nova Ltda',
+        telefone: '119',
+        endereco: 'Rua 2',
+        logoUrl: 'https://cdn/logo.png',
+      },
+    });
   });
 });
