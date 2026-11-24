@@ -46,10 +46,13 @@ npm run lint
 npm test
 npm run test:cov
 npm run test:e2e
+npm run test:qa
 npm run build
 ```
 
-O e2e usa `DATABASE_URL` de `.env.test` (Postgres local `pedeai` / `pedeai` / banco `pedeai_test`). O `globalSetup` executa `prisma migrate reset --force` uma vez; cada arquivo trunca as tabelas antes de rodar. A CI sobe o Postgres como service.
+O e2e e a suíte de QA usam `DATABASE_URL` de `.env.test` (Postgres local `pedeai` / `pedeai` / banco `pedeai_test`). O `globalSetup` executa `prisma migrate reset --force` uma vez; cada arquivo trunca as tabelas antes de rodar. A CI sobe o Postgres como service.
+
+`npm run test:qa` roda a suíte de integração da Sprint 1 em `test/qa` (auth, isolamento, permissões e seed) com o mesmo Postgres. O processo de teste fixa `LOGIN_MAX_FALHAS_EMAIL=5`, `LOGIN_MAX_FALHAS_IP=20` e `LOGIN_JANELA_MIN=15`, para o 429 não depender dos tetos folgados de desenvolvimento.
 
 ## Credenciais do seed
 
