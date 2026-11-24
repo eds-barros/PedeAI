@@ -32,6 +32,9 @@ services:
       LOG_LEVEL: info
       NODE_ENV: development
       SEED_ON_START: "true"
+      LOGIN_MAX_FALHAS_EMAIL: "50"
+      LOGIN_MAX_FALHAS_IP: "200"
+      LOGIN_JANELA_MIN: "15"
     depends_on:
       postgres:
         condition: service_healthy
@@ -48,17 +51,17 @@ services:
       retries: 10
       start_period: 40s
 
-  # web:
-  #   Frontend Next.js ainda não está na main (apps/web, outro PR).
-  #   build:
-  #     context: ./apps/web
-  #   ports:
-  #     - "3001:3000"
-  #   environment:
-  #     NEXT_PUBLIC_API_URL: http://api:3000/api/v1
-  #   depends_on:
-  #     api:
-  #       condition: service_healthy
+  web:
+    profiles: [web]
+    build:
+      context: ./apps/web
+    ports:
+      - "3001:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3000/api/v1
+    depends_on:
+      api:
+        condition: service_healthy
 
 volumes:
   pedeai_pg:

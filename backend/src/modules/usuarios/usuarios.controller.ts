@@ -1,7 +1,9 @@
 import { BadRequestException, Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiConflictResponse,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -25,6 +27,8 @@ const EXEMPLO_USUARIO = {
   email: 'caixa.pizzaria@pedeai.local',
   role: 'CAIXA',
   active: true,
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-02T00:00:00.000Z',
 };
 
 @ApiTags('Usuários')
@@ -37,10 +41,23 @@ export class UsuariosController {
   @Papeis(Papel.ADMIN, Papel.GERENTE)
   @ApiOperation({ summary: 'Lista usuários da empresa ativa' })
   @ApiOkResponse({
-    schema: {
-      example: {
-        data: [EXEMPLO_USUARIO],
-        meta: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
+    description: 'Lista vazia devolve data [] e meta.totalPages 0.',
+    content: {
+      'application/json': {
+        examples: {
+          comRegistros: {
+            value: {
+              data: [EXEMPLO_USUARIO],
+              meta: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
+            },
+          },
+          vazia: {
+            value: {
+              data: [],
+              meta: { page: 1, pageSize: 20, total: 0, totalPages: 0 },
+            },
+          },
+        },
       },
     },
   })
@@ -69,8 +86,30 @@ export class UsuariosController {
 
   @Patch(':id')
   @Papeis(Papel.ADMIN)
-  @ApiOperation({ summary: 'Altera nome ou papel na empresa ativa' })
+  @ApiOperation({
+    summary: 'Altera nome ou papel na empresa ativa',
+    description:
+      'Quem tenta mudar o próprio papel recebe 403, inclusive o último Admin. O 409 só ocorre se outro ator fosse rebaixar o último Admin ativo.',
+  })
   @ApiOkResponse({ schema: { example: EXEMPLO_USUARIO } })
+  @ApiForbiddenResponse({
+    description: 'Auto-alteração de papel. A checagem roda antes da regra do último Admin.',
+    schema: {
+      example: {
+        statusCode: 403,
+        message: 'Você não pode alterar o próprio papel ou status.',
+      },
+    },
+  })
+  @ApiConflictResponse({
+    description: 'Defesa em profundidade: outro ator rebaixaria o último Admin ativo.',
+    schema: {
+      example: {
+        statusCode: 409,
+        message: 'A empresa precisa ter ao menos um administrador ativo.',
+      },
+    },
+  })
   atualizar(
     @EmpresaAtual() empresaId: string,
     @Param('id', UUID) id: string,
@@ -82,8 +121,30 @@ export class UsuariosController {
 
   @Patch(':id/status')
   @Papeis(Papel.ADMIN)
-  @ApiOperation({ summary: 'Ativa ou desativa o vínculo na empresa ativa' })
+  @ApiOperation({
+    summary: 'Ativa ou desativa o vínculo na empresa ativa',
+    description:
+      'Quem tenta desativar o próprio vínculo recebe 403, inclusive o último Admin. O 409 só ocorre se outro ator fosse desativar o último Admin ativo.',
+  })
   @ApiOkResponse({ schema: { example: { ...EXEMPLO_USUARIO, active: false } } })
+  @ApiForbiddenResponse({
+    description: 'Auto-desativação. A checagem roda antes da regra do último Admin.',
+    schema: {
+      example: {
+        statusCode: 403,
+        message: 'Você não pode alterar o próprio papel ou status.',
+      },
+    },
+  })
+  @ApiConflictResponse({
+    description: 'Defesa em profundidade: outro ator desativaria o último Admin ativo.',
+    schema: {
+      example: {
+        statusCode: 409,
+        message: 'A empresa precisa ter ao menos um administrador ativo.',
+      },
+    },
+  })
   status(
     @EmpresaAtual() empresaId: string,
     @Param('id', UUID) id: string,

@@ -22,5 +22,8 @@ export function validarAmbiente(config: Record<string, unknown>) {
     LOG_LEVEL: String(config.LOG_LEVEL ?? 'info'),
     APP_URL: String(config.APP_URL ?? 'http://localhost:3001'),
     NODE_ENV: String(config.NODE_ENV ?? 'development'),
+    LOGIN_MAX_FALHAS_EMAIL: Number(config.LOGIN_MAX_FALHAS_EMAIL ?? 5),
+    LOGIN_MAX_FALHAS_IP: Number(config.LOGIN_MAX_FALHAS_IP ?? 20),
+    LOGIN_JANELA_MIN: Number(config.LOGIN_JANELA_MIN ?? 15),
   };
 }

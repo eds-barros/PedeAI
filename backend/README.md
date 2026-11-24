@@ -16,7 +16,13 @@ Postgres e API (o serviço `web` está comentado: `apps/web` ainda não está na
 docker compose up --build
 ```
 
-A API sobe em `http://localhost:3000`. Swagger: `http://localhost:3000/api/docs`. Saúde: `GET /api/v1/health`.
+O frontend em `apps/web` só entra com o profile `web` (não quebra o `up` enquanto essa pasta não está na main):
+
+```bash
+docker compose --profile web up --build
+```
+
+A API sobe em `http://localhost:3000`. Swagger: `http://localhost:3000/api/docs`. Saúde: `GET /api/v1/health`. Com o profile, o web fica em `http://localhost:3001` e chama a API em `http://localhost:3000/api/v1`.
 
 O container da API roda `prisma migrate deploy`. O seed só roda se `SEED_ON_START=true` (já está assim no Compose) e recusa `NODE_ENV=production`.
 
@@ -64,6 +70,10 @@ Senhas com letra e número. A empresa ativa inicial do usuário multiempresa é 
 | multi@pedeai.local | MultiEmpresa1 | Pizzaria (garçom) e Lanchonete (gerente) | os dois |
 
 O seed também grava pizzas, lanches e bebidas. Ele é idempotente (upsert por slug/CNPJ, e-mail e vínculo).
+
+Quem tenta mudar o próprio papel ou desativar o próprio vínculo recebe 403, inclusive o último Admin. Essa checagem vem antes da regra do último Admin. O 409 fica como defesa: só quando outro ator fosse desativar ou rebaixar o último Admin ativo.
+
+O rate limit do login conta só falhas (`LOGIN_MAX_FALHAS_EMAIL`, `LOGIN_MAX_FALHAS_IP`, `LOGIN_JANELA_MIN`). O contador fica em memória nesta instância; Redis fica para depois. Em desenvolvimento os tetos do `.env.example` e do Compose são mais folgados.
 
 ## Ajustes de modelo
 

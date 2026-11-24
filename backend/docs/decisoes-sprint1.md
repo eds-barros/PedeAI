@@ -19,12 +19,12 @@ Prefixo da API: `/api/v1`. Swagger: `/api/docs`. Pasta do backend: `/backend` (p
    - `GET /users?page=1&pageSize=20&search=&role=&active=` (ADMIN, GERENTE) → {data, meta:{page,pageSize,total,totalPages}}; pageSize máx. 100.
    - `POST /users` (ADMIN) {name,email,password,role} → 201; 409 se o e-mail já tem vínculo nesta empresa. Se o e-mail já existe em outra empresa, cria só o vínculo (senha informada é ignorada).
    - `GET /users/:id` (ADMIN, GERENTE) → 200; 404 se não pertence à empresa ativa.
-   - `PATCH /users/:id` (ADMIN) {name?, role?} → 200.
-   - `PATCH /users/:id/status` (ADMIN) {active} → 200; 409 se for desativar/rebaixar o último Admin ativo.
+   - `PATCH /users/:id` (ADMIN) {name?, role?} → 200. Se o próprio usuário tenta mudar o próprio papel → 403 "Você não pode alterar o próprio papel ou status." (vale também para o último Admin). 409 só se outro ator fosse rebaixar o último Admin ativo.
+   - `PATCH /users/:id/status` (ADMIN) {active} → 200. Se o próprio usuário tenta desativar o próprio vínculo → 403 com a mesma mensagem, inclusive sendo o último Admin. 409 é defesa em profundidade quando a operação, feita por outra pessoa, deixaria a empresa sem Admin ativo.
 2. JWT: `sub` = usuarioId, `empresaId` = empresa ativa, `papel` = papel na empresa ativa, `jti`. Empresa ativa só no token, sem header. Access TTL 15 min; refresh TTL 7 dias, opaco, armazenado como hash, rotação a cada uso com detecção de reúso (reúso revoga a família inteira).
 3. A empresa ativa vem só da claim `empresaId`. Header de empresa não é lido; trocar empresa só via `/auth/switch-company`.
-4. Convenção confirmada: outra empresa = 404 genérico; papel insuficiente = 403; sem token/expirado/revogado/usuário desativado = 401; login inválido = 401 mensagem única; rate limit = 429; regra do último Admin = 409.
-5. Rate limit do login: chave IP+e-mail, 5 tentativas falhas em 15 min → bloqueio de 15 min; e 20 req/15 min por IP. Durante o bloqueio, até credenciais corretas recebem 429. Envia `Retry-After`. forgot-password: 5/h por IP.
+4. Convenção confirmada: outra empresa = 404 genérico; papel insuficiente = 403; sem token/expirado/revogado/usuário desativado = 401; login inválido = 401 mensagem única; rate limit = 429; auto-alteração de papel/status = 403 (checada primeiro, inclusive no último Admin); regra do último Admin = 409 só quando outro ator removeria o último Admin ativo.
+5. Rate limit do login: só tentativas falhas contam (login bem-sucedido não consome cota). Chave IP+e-mail, 5 falhas em 15 min → bloqueio de 15 min; e 20 falhas em 15 min por IP. Durante o bloqueio, até credenciais corretas recebem 429. Envia `Retry-After`. Os tetos são `LOGIN_MAX_FALHAS_EMAIL`, `LOGIN_MAX_FALHAS_IP` e `LOGIN_JANELA_MIN` (padrão 5, 20 e 15). Em desenvolvimento o `.env` usa valores mais folgados. O store é em memória e vale para uma instância; Redis fica para depois. forgot-password: 5/h por IP.
 6. bcrypt, custo 12 (prefixo `$2b$12$`).
 7. Várias sessões simultâneas (uma família de refresh por login/dispositivo). O guard revalida a cada request que o usuário e o vínculo com a empresa ativa estão ativos (desativado → 401 imediato), além do refresh.
 8. IDs UUID v4 em todas as entidades.
@@ -33,7 +33,7 @@ Prefixo da API: `/api/v1`. Swagger: `/api/docs`. Pasta do backend: `/backend` (p
 
 9. Gerente não cria nem promove Admin. Na Sprint 1 só Admin cria/edita/desativa/reativa usuários; Gerente só lista e consulta.
 10. Gerente não edita nem desativa Admin (403).
-11. A empresa nunca fica sem Admin ativo: desativar, rebaixar ou remover o último Admin → 409.
+11. A empresa nunca fica sem Admin ativo. A checagem de auto-alteração roda primeiro e devolve 403 sempre que o usuário tenta mudar o próprio papel ou desativar o próprio vínculo, inclusive se for o último Admin. `afirmarNaoEhUltimoAdmin` continua como defesa em profundidade e responde 409 quando a operação, feita por outra pessoa, desativaria ou rebaixaria o último Admin ativo.
 12. Sim, papel é por vínculo usuário-empresa (Garçom em A e Gerente em B).
 13. E-mail único global (usuário é global; vínculos por empresa).
 14. Admin define senha temporária na criação. Convite por e-mail fora do escopo.
@@ -87,7 +87,7 @@ Estes nomes são estáveis para o PR de integrações. Caminhos relativos a `/ba
 - Enum `Papel { ADMIN, GERENTE, CAIXA, GARCOM, COZINHA }`. Chaves de metadata: `IS_PUBLIC_KEY = 'isPublic'` (@Public) e `PAPEIS_KEY = 'papeis'` (@Papeis), exportadas de src/common/tenant.
 - `POST /users`: custo de tempo igual nos caminhos 201 e 409 (sempre roda bcrypt.hash da senha antes de checar e-mail; resposta 409 só após o hash).
 - `InMemoryMailAdapter` só pode ser registrado com `NODE_ENV=test`; a factory lança erro se for selecionado em outro ambiente. Fora de teste: adapter de log (dev) ou SMTP (prod, configurável).
-- Ninguém altera o próprio papel nem desativa o próprio vínculo (403 "Você não pode alterar o próprio papel ou status."), mesmo havendo outro Admin.
+- Ninguém altera o próprio papel nem desativa o próprio vínculo (403 "Você não pode alterar o próprio papel ou status."), mesmo havendo outro Admin. OBS-001: essa checagem roda antes de `afirmarNaoEhUltimoAdmin`. O último Admin que tenta se desativar ou se rebaixar recebe 403, não 409. O 409 permanece como defesa em profundidade para o caso em que outro ator removeria o último Admin ativo.
 - Sprint 1: Gerente só lista/consulta usuários (sem criar/editar ninguém).
 - Respostas: `POST /users` 201 e `PATCH /users/:id` 200 e `PATCH /users/:id/status` 200 devolvem `{id, name, email, role, active, createdAt, updatedAt}`; `POST /auth/reset-password` 204.
 - Permissions de módulos ainda sem API (produtos, pedidos, pdv, caixa, cozinha, relatorios) existem no catálogo, mas o front esconde esses itens nesta sprint.

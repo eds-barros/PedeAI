@@ -30,8 +30,14 @@ describe('LimitadorAuth', () => {
     expect(() => limitador.verificarLogin('1.1.1.1', 'a@b.c')).not.toThrow();
   });
 
-  it('limita 20 logins por IP em 15 minutos', () => {
-    for (let i = 0; i < 20; i += 1) limitador.verificarLogin('9.9.9.9', `u${i}@b.c`);
+  it('bloqueia o IP depois de 20 falhas, sem contar login bem-sucedido', () => {
+    for (let i = 0; i < 30; i += 1) {
+      limitador.verificarLogin('9.9.9.9', 'ok@b.c');
+      limitador.registrarSucessoLogin('9.9.9.9', 'ok@b.c');
+    }
+    expect(() => limitador.verificarLogin('9.9.9.9', 'novo@b.c')).not.toThrow();
+
+    for (let i = 0; i < 20; i += 1) limitador.registrarFalhaLogin('9.9.9.9', `u${i}@b.c`);
     expect(() => limitador.verificarLogin('9.9.9.9', 'novo@b.c')).toThrow(MuitasTentativasException);
   });
 

@@ -33,6 +33,9 @@ jobs:
       APP_URL: http://localhost:3001
       NODE_ENV: test
       LOG_LEVEL: warn
+      LOGIN_MAX_FALHAS_EMAIL: "5"
+      LOGIN_MAX_FALHAS_IP: "20"
+      LOGIN_JANELA_MIN: "15"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -46,3 +49,28 @@ jobs:
       - run: npm run test:cov
       - run: npm run test:e2e
       - run: npm run build
+
+  compose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sobe Postgres e API
+        run: docker compose up -d --build
+      - name: Espera GET /api/v1/health
+        run: |
+          for _ in $(seq 1 36); do
+            if curl -sf http://127.0.0.1:3000/api/v1/health; then
+              echo
+              echo "API saudável"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "A API não respondeu em /api/v1/health"
+          docker compose ps
+          docker compose logs --no-color api
+          exit 1
+      - name: Derruba o Compose
+        if: always()
+        run: docker compose down -v

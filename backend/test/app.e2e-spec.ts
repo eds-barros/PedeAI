@@ -251,19 +251,40 @@ describe('Sprint 1 (e2e)', () => {
     expect(me.body.permissions).toContain('empresa:editar');
     expect(me.body.role).toBe('ADMIN');
 
-    const proprio = await request(app.getHttpServer())
-      .patch(`/api/v1/users/${(await idDe('admin.pizzaria@pedeai.local'))}/status`)
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ active: false });
-    expect(proprio.status).toBe(403);
-    expect(proprio.body.message).toBe('Você não pode alterar o próprio papel ou status.');
-
     const fraca = await request(app.getHttpServer())
       .post('/api/v1/users')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ name: 'Fraca', email: 'fraca@pedeai.local', password: 'semnumero', role: 'CAIXA' });
     expect(fraca.status).toBe(400);
     expect(fraca.body.errors[0].field).toBe('password');
+  });
+
+  it('o último Admin tenta se desativar ou rebaixar e recebe 403', async () => {
+    const adminId = await idDe('admin.pizzaria@pedeai.local');
+    const adminsAtivos = await prisma.usuarioEmpresa.count({
+      where: { empresaId: PIZZARIA, papel: Papel.ADMIN, ativo: true, usuario: { ativo: true } },
+    });
+    expect(adminsAtivos).toBe(1);
+
+    const desativar = await request(app.getHttpServer())
+      .patch(`/api/v1/users/${adminId}/status`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ active: false });
+    expect(desativar.status).toBe(403);
+    expect(desativar.body.message).toBe('Você não pode alterar o próprio papel ou status.');
+
+    const rebaixar = await request(app.getHttpServer())
+      .patch(`/api/v1/users/${adminId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ role: 'GERENTE' });
+    expect(rebaixar.status).toBe(403);
+    expect(rebaixar.body.message).toBe('Você não pode alterar o próprio papel ou status.');
+
+    const aindaAdmin = await request(app.getHttpServer())
+      .get(`/api/v1/users/${adminId}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(aindaAdmin.status).toBe(200);
+    expect(aindaAdmin.body).toMatchObject({ role: 'ADMIN', active: true });
   });
 
   it('troca a empresa ativa e mata o access antigo', async () => {
