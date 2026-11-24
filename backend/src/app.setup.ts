@@ -28,5 +28,7 @@ export function configurarApp(app: INestApplication): void {
       .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'access-token')
       .build(),
   );
-  SwaggerModule.setup('api/docs', app, documento);
+  SwaggerModule.setup('api/docs', app, documento, {
+    ui: process.env.NODE_ENV !== 'test',
+  });
 }
