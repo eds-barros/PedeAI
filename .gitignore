@@ -1,0 +1,14 @@
+node_modules
+.pnpm-store
+.next
+out
+dist
+coverage
+.DS_Store
+*.log
+.env.local
+.env*.local
+*.tsbuildinfo
+.vercel
+playwright-report
+test-results
