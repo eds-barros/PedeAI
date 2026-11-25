@@ -5,11 +5,11 @@ on:
   pull_request:
 
 jobs:
-  backend:
+  api:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend
+        working-directory: apps/api
     services:
       postgres:
         image: postgres:16-alpine
@@ -42,7 +42,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: apps/api/package-lock.json
       - run: npm ci
       - run: npx prisma generate
       - run: npm run lint

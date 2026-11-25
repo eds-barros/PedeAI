@@ -1,7 +1,7 @@
-# Decisões do backend — Sprint 1 (Hulk)
+# Decisões da API — Sprint 1 (Hulk)
 
 Respostas à seção 8 do plano de testes da Vision. Valem como especificação para a implementação.
-Prefixo da API: `/api/v1`. Swagger: `/api/docs`. Pasta do backend: `/backend` (pode mudar para `apps/api`, decisão pendente com o Edson; caminhos abaixo são relativos à pasta do backend).
+Prefixo da API: `/api/v1`. Swagger: `/api/docs`. Pasta da API: `apps/api` (decisão do Edson). Os caminhos abaixo são relativos a essa pasta.
 
 ## 8.1 Contratos e convenções
 
@@ -46,8 +46,8 @@ Prefixo da API: `/api/v1`. Swagger: `/api/docs`. Pasta do backend: `/backend` (p
 18. Pastas: `src/modules/auth/`, `src/modules/empresas/`, `src/modules/usuarios/`, `src/modules/papeis/`, `src/common/tenant/` (guards, decorators de empresa/papel).
 19. coverageThreshold 70% nas quatro métricas nessas pastas. Exclusões: `main.ts`, `*.module.ts`, `*.dto.ts`, client Prisma gerado, `prisma/seed.ts`.
 20. e2e: `prisma migrate reset --force` uma vez no globalSetup + `TRUNCATE ... CASCADE` antes de cada arquivo; e2e roda com `--runInBand`.
-21. Seed: `npx prisma db seed` (alias `npm run seed`), idempotente via upsert por e-mail (Usuario), slug/CNPJ (Empresa) e chave composta (vínculo). Aborta se `NODE_ENV=production`. 2 empresas demo (Pizzaria e Lanchonete), 1 usuário por papel em cada, mais um usuário multiempresa (Garçom em A e Gerente em B). Credenciais documentadas no README do backend.
-22. Compose: `postgres` (healthcheck pg_isready), `api` (depende de postgres saudável; roda `prisma migrate deploy` no start; seed só se `SEED_ON_START=true`; healthcheck `GET /api/v1/health`), `web` em apps/web quando existir. `.env.example` do backend sem segredos reais.
+21. Seed: `npx prisma db seed` (alias `npm run seed`), idempotente via upsert por e-mail (Usuario), slug/CNPJ (Empresa) e chave composta (vínculo). Aborta se `NODE_ENV=production`. 2 empresas demo (Pizzaria e Lanchonete), 1 usuário por papel em cada, mais um usuário multiempresa (Garçom em A e Gerente em B). Credenciais documentadas no README de `apps/api`.
+22. Compose: `postgres` (healthcheck pg_isready), `api` (contexto `apps/api`; depende de postgres saudável; roda `prisma migrate deploy` no start; seed só se `SEED_ON_START=true`; healthcheck `GET /api/v1/health`), `web` no profile `web` (`docker compose --profile web up`). `.env.example` de `apps/api` sem segredos reais.
 23. Logger pino com redact de `password`, `newPassword`, `currentPassword`, `refreshToken`, `accessToken`, `authorization`. Nos testes, logger injetável permite capturar a saída em memória.
 24. Menu: `GET /me` devolve `permissions`; o E2E pode validar pelo payload.
 
@@ -68,7 +68,7 @@ Prefixo da API: `/api/v1`. Swagger: `/api/docs`. Pasta do backend: `/backend` (p
 
 ## Contratos internos (módulo de integrações e HTTP)
 
-Estes nomes são estáveis para o PR de integrações. Caminhos relativos a `/backend`.
+Estes nomes são estáveis para o PR de integrações. Caminhos relativos a `apps/api`.
 
 - Decorators em `src/common/tenant` (reexportados por `src/common/tenant/index.ts`):
   - `@UsuarioAtual()` devolve `UsuarioAutenticado = { id: string; email: string; empresaId: string; papel: Papel; jti: string; sid: string }` em `request.user`. `sid` entrou na revisão 1.1 (id da sessão).
@@ -80,7 +80,7 @@ Estes nomes são estáveis para o PR de integrações. Caminhos relativos a `/ba
 - `NestFactory.create` usa `FastifyAdapter` e `{ rawBody: true }` para a futura validação de assinatura de webhooks (`request.rawBody`).
 - Prefixo global `/api/v1` sem exclusões. Swagger em `/api/docs` (fora do prefixo, registrado à parte).
 - `POST /auth/login`, `GET /me` e `POST /auth/switch-company` mantêm o contrato do frontend (`user.name`, `companies[].name` = `nomeFantasia`). `GET/PATCH /companies/current` usa os campos em português da revisão 1.1.
-- O schema Prisma vive em `backend/prisma/schema.prisma` (não havia `prisma/schema.prisma` na raiz). O pacote não usa caminho absoluto, para poder ir para `apps/api` depois.
+- O schema Prisma vive em `apps/api/prisma/schema.prisma`. O pacote não usa caminho absoluto.
 
 ## Revisão 1.2
 

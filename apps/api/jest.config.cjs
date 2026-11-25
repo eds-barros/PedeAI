@@ -1,4 +1,6 @@
 /** @type {import('jest').Config} */
+// Gate de 70% em apps/api: src/modules/{auth,empresas,usuarios,papeis} e src/common/tenant.
+// Os caminhos são relativos ao pacote (o CI roda com working-directory apps/api).
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',

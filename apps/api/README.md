@@ -1,8 +1,8 @@
-# PedeAI — backend
+# PedeAI — API
 
-API NestJS (Fastify) da Sprint 1: autenticação, multiempresa, usuários e papéis. O contrato fechado está em [docs/decisoes-sprint1.md](docs/decisoes-sprint1.md). A documentação geral do repositório (README da raiz, `.env.example` da raiz e `CONTRIBUTING`) fica no [PR #1](https://github.com/eds-barros/PedeAI/pull/1); este pacote não duplica esses arquivos.
+API NestJS (Fastify) da Sprint 1, no pacote `apps/api` (`@pedeai/api`): autenticação, multiempresa, usuários e papéis. O contrato fechado está em [docs/decisoes-sprint1.md](docs/decisoes-sprint1.md). A documentação geral do repositório (README da raiz, `.env.example` da raiz e `CONTRIBUTING`) fica no [PR #1](https://github.com/eds-barros/PedeAI/pull/1); este pacote não duplica esses arquivos.
 
-Não havia `prisma/schema.prisma` na raiz. O schema foi criado em `backend/prisma/schema.prisma`, junto do pacote, sem caminho absoluto, para poder ir para `apps/api` depois.
+O schema Prisma está em `apps/api/prisma` (schema, migrations e seed).
 
 ## Stack
 
@@ -29,7 +29,7 @@ O container da API roda `prisma migrate deploy`. O seed só roda se `SEED_ON_STA
 Sem Docker, só o banco e a API na máquina:
 
 ```bash
-cd backend
+cd apps/api
 cp .env.example .env
 # aponte DATABASE_URL para o Postgres e preencha JWT_ACCESS_SECRET (16+ caracteres)
 npm ci
@@ -41,7 +41,7 @@ npm run start:dev
 ## Testes
 
 ```bash
-cd backend
+cd apps/api
 npm run lint
 npm test
 npm run test:cov

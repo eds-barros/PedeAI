@@ -1,5 +1,4 @@
-// Schema canônico do PedeAI. A raiz do repositório não tinha prisma/schema.prisma;
-// o modelo fica dentro do pacote backend para o diretório poder ser movido.
+// Schema canônico do PedeAI. Fica em apps/api/prisma para ir junto com o pacote.
 generator client {
   provider = "prisma-client-js"
 }

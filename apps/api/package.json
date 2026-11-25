@@ -1,5 +1,5 @@
 {
-  "name": "@pedeai/backend",
+  "name": "@pedeai/api",
   "version": "1.0.0",
   "description": "API PedeAI (NestJS, Fastify, Prisma)",
   "private": true,
