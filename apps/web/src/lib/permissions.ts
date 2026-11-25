@@ -1,5 +1,5 @@
 /**
- * Catálogo de permissões alinhado ao backend (papeis/permissoes).
+ * Catálogo de permissões alinhado à API (`apps/api/src/modules/papeis/permissoes.ts`).
  * O menu e as ações usam a lista vinda do GET /me.
  * Se ela não vier, a matriz por papel abaixo serve de fallback.
  *

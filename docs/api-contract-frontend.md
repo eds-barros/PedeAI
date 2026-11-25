@@ -2,7 +2,7 @@
 
 Fonte: decisões do backend da Sprint 1 (revisões 1.1 e 1.2). Cliente em `apps/web/src/lib/api`. Mock em `apps/web/src/mocks`.
 
-O backend vive em `/backend`. O app web fica em `apps/web`. O workspace também reserva `backend` para o pacote da API.
+A API fica em `apps/api`. O app web fica em `apps/web`. O `pnpm-workspace.yaml` só lista `apps/*`, então o pacote da API entra sem uma entrada extra.
 
 ## Base
 

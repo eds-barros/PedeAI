@@ -2,7 +2,7 @@
 
 Frontend da Sprint 1 (Next.js App Router, TypeScript, Tailwind CSS). A interface está em português do Brasil.
 
-O backend NestJS fica em `/backend` e **não** faz parte deste app. O workspace pnpm já inclui `apps/*` e `backend` para ele entrar depois sem mudar este pacote.
+A API NestJS fica em `apps/api` e não faz parte deste pacote. O workspace pnpm lista `apps/*`, então `apps/api` entra junto sem uma segunda entrada.
 
 ## Rodar em modo mock
 
@@ -13,18 +13,18 @@ pnpm install
 pnpm --filter web dev
 ```
 
-O arquivo `apps/web/.env.development` já liga o mock. Abra [http://localhost:3000](http://localhost:3000).
+O `pnpm --filter web dev` sobe em [http://localhost:3001](http://localhost:3001). O mock só liga se `NEXT_PUBLIC_API_MOCK=true`.
 
 | Variável | Exemplo | Função |
 | --- | --- | --- |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:3000/api/v1` | Base da API **com** o prefixo `/api/v1`, sem barra no final. |
-| `NEXT_PUBLIC_API_MOCK` | `false` | `true` inicia o MSW no navegador e dispensa o backend. O padrão é a API real. |
+| `NEXT_PUBLIC_API_MOCK` | `false` | `true` inicia o MSW no navegador e dispensa a API. O padrão é a API real. |
 
-O `pnpm --filter web dev` sobe na porta **3001**. A API ocupa a 3000 e o `CORS_ORIGIN` do backend é `http://localhost:3001`. Swagger: `http://localhost:3000/api/docs`. A autenticação vai no header `Authorization`, não em cookie.
+O `pnpm --filter web dev` sobe na porta **3001**. A API ocupa a 3000 e o `CORS_ORIGIN` dela é `http://localhost:3001`. Swagger: `http://localhost:3000/api/docs`. A autenticação vai no header `Authorization`, não em cookie.
 
 ## Contas
 
-São as do seed do backend. A API real escuta em `http://localhost:3000` e o CORS dela libera `http://localhost:3001`, então o web sobe nessa porta:
+São as do seed da API (`apps/api/prisma/seed.ts`). A API real escuta em `http://localhost:3000` e o CORS dela libera `http://localhost:3001`, então o web sobe nessa porta:
 
 ```bash
 pnpm --filter web dev
@@ -47,7 +47,7 @@ A senha precisa ter de 8 a 72 caracteres, com letra e número (só ASCII, como a
 
 PDV, KDS, cardápio, pedidos e relatórios existem no catálogo, mas ficam fora do menu enquanto `UNRELEASED_MODULES_VISIBLE` em `src/lib/permissions.ts` for `false`.
 
-No mock, o token `demo-reset` redefine a senha do admin da pizzaria: [http://localhost:3001/redefinir-senha?token=demo-reset](http://localhost:3001/redefinir-senha?token=demo-reset). Na API real o link sai no log do backend (`APP_URL` + `/redefinir-senha?token=`). O “esqueci minha senha” sempre mostra a mesma frase.
+No mock, o token `demo-reset` redefine a senha do admin da pizzaria: [http://localhost:3001/redefinir-senha?token=demo-reset](http://localhost:3001/redefinir-senha?token=demo-reset). Na API real o link sai no log do processo em `apps/api` (`APP_URL` + `/redefinir-senha?token=`). O “esqueci minha senha” sempre mostra a mesma frase.
 
 ## Scripts
 

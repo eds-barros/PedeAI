@@ -1,4 +1,4 @@
-/** Credenciais iguais ao seed do backend (`backend/prisma/seed.ts`). */
+/** Credenciais iguais ao seed da API (`apps/api/prisma/seed.ts`). */
 
 export const DEMO_RESET_TOKEN = "demo-reset";
 
