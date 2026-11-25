@@ -2,6 +2,8 @@
 
 Documentação e mensagens voltadas a quem usa o produto ficam em português do Brasil.
 
+A API da Sprint 1 fica em `apps/api` (pacote `@pedeai/api`). Schema, migrations, seed e `.env.example` desse pacote ficam junto. O README da raiz, o `.env.example` da raiz e este arquivo descrevem o repositório.
+
 O branch de integração que existe hoje é `main`. Não há `develop`. Abra o pull request contra `main`. Se o repositório ganhar um `develop` de integração, ramifique a partir dele e atualize este arquivo no mesmo PR.
 
 ## Branches

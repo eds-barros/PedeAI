@@ -1,27 +1,45 @@
 # API e Swagger
 
-Estado em 24 de novembro de 2026.
+Lido no PR #3, commit `af64bab`, e conferido no documento servido em `/api/docs-json`. Prefixo das rotas: `/api/v1`. Swagger UI: `http://localhost:3000/api/docs`. O documento JSON do Nest fica em `http://localhost:3000/api/docs-json` com a API no ar. Não há `docs/openapi.yaml` versionado; o gerador é o Swagger em memória, e a UI não sobe com `NODE_ENV=test`.
 
-## Rota `/docs`
+Bearer no documento: esquema `access-token` (HTTP bearer, JWT).
 
-Não está publicada. Não há processo HTTP no repositório, nem dependência `@nestjs/swagger`, nem registro de Swagger para Fastify. Nada escuta uma porta para servir `/docs`.
+## Auth
 
-Decorators `ApiTags`, `ApiOperation`, `ApiResponse`, `ApiBearerAuth`, `ApiBody` e `ApiProperty` não aparecem, porque não há controllers nem DTOs.
+Rotas em `auth.controller.ts`. Os DTOs em `dto/auth.dto.ts` têm `ApiProperty` com `example`. Não há decorator `ApiBody` em nenhum controller do pacote. O Swagger monta o corpo a partir do DTO.
 
-## Endpoints de auth, empresas e usuários
-
-Busca no código por controllers, rotas e DTOs: nenhum arquivo.
-
-| Grupo da Sprint 1 | No repositório | Swagger com exemplos |
+| Método e rota | Exemplo de resposta | Exemplo de corpo |
 | --- | --- | --- |
-| Auth (login e fluxos associados) | Ausente | Falta a rota, o DTO com `ApiProperty` `example`, `ApiBody` e `ApiResponse` com exemplo |
-| Empresas | Ausente | Falta a rota, os DTOs com exemplo e `ApiBearerAuth` nas rotas protegidas |
-| Usuários | Ausente | Falta a rota, os DTOs com exemplo e `ApiBearerAuth` nas rotas protegidas |
+| `POST /api/v1/auth/login` | `ApiOkResponse` com `example` (tokens, user, companies) e `ApiUnauthorizedResponse` com `example` | `LoginDto`: e-mail `admin.pizzaria@pedeai.local`, senha `PizzariaAdmin1` |
+| `POST /api/v1/auth/refresh` | `ApiOkResponse` com access e refresh novos | `RefreshDto`: `refresh-opaco` |
+| `POST /api/v1/auth/logout` | `ApiNoContentResponse` sem corpo de exemplo | `RefreshDto` |
+| `POST /api/v1/auth/forgot-password` | 204 sem exemplo de erro | `EsqueciSenhaDto` |
+| `POST /api/v1/auth/reset-password` | 204 sem exemplo de erro | token e `NovaSenha1` |
+| `PATCH /api/v1/auth/change-password` | 204 sem exemplo de erro | senha atual e nova |
+| `POST /api/v1/auth/switch-company` | `example` com tokens, `activeCompanyId` e `role` | UUID da lanchonete do seed |
+| `GET /api/v1/me` | `example` com user, companies, role e permissions | não tem corpo |
 
-Não há outro endpoint documentável.
+## Empresas
 
-## `docs/openapi.json` ou `docs/openapi.yaml`
+`GET /api/v1/companies/current` tem `ApiOkResponse` com `example` (id, nome fantasia, slug, logo e, para Admin/Gerente, razão social, CNPJ, telefone, e-mail e endereço).
 
-O arquivo não foi gerado. Produzi-lo sem banco só é viável quando existe um gerador que inspeciona a aplicação (por exemplo o documento que o Swagger do Nest monta em memória e um script grava em `docs/`). Esse gerador não está no repositório. Criar um YAML com paths de login, empresas e usuários seria descrever rotas que o código não tem.
+`PATCH /api/v1/companies/current` documenta a operação e o DTO `AtualizarEmpresaDto` com `ApiPropertyOptional` e `example` em cada campo. O `ApiOkResponse` só tem descrição (`Cadastro atualizado.`), sem `example`.
 
-Quando o gerador existir, o comando exato entra nesta seção e o artefato fica em `docs/openapi.yaml` ou `docs/openapi.json`, no mesmo PR que publica `/docs`.
+## Usuários
+
+`ApiBearerAuth` na classe. Corpos de `CriarUsuarioDto`, `AtualizarUsuarioDto`, `StatusUsuarioDto` e da query de listagem têm `example`.
+
+| Método e rota | Exemplos no Swagger |
+| --- | --- |
+| `GET /api/v1/users` | dois exemplos de resposta: lista com um usuário e lista vazia (`totalPages` 0). A query tem `example` no schema: `page` 1, `pageSize` 20, `search` maria, `role` CAIXA, `active` true |
+| `POST /api/v1/users` | `ApiCreatedResponse` com o usuário de exemplo |
+| `GET /api/v1/users/:id` | `ApiOkResponse` com o mesmo exemplo |
+| `PATCH /api/v1/users/:id` | resposta de sucesso, 403 e 409 com `example` |
+| `PATCH /api/v1/users/:id/status` | resposta com `active: false`, 403 e 409 com `example` |
+
+## O que falta no Swagger
+
+- Nenhum endpoint usa `ApiBody`. O exemplo do request depende do `example` do `ApiProperty`.
+- `PATCH /api/v1/companies/current` não tem exemplo de resposta.
+- Logout, esqueci senha, redefinição e troca de senha não têm exemplo de erro (401/400).
+- Não há classe de resposta com `ApiProperty` para login, empresa ou usuário. Os exemplos de saída estão no `schema.example` do controller, soltos do tipo TypeScript.
