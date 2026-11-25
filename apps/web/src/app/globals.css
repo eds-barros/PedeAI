@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+/*
+ * Praça — tokens do PedeAI.
+ * As cores de marca mudam com .dark; os utilitários do Tailwind apontam para as variáveis.
+ * Contraste documentado em docs/design-system-praca.md.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+  --background: #f4efe6;
+  --surface: #fffcf8;
+  --surface-muted: #efe8dc;
+  --sidebar: #e9e2d4;
+  --foreground: #1f1a14;
+  --muted: #5c554a;
+  --border: #d9d0c2;
+  --border-strong: #8a8175;
+  --primary: #0d6e56;
+  --primary-hover: #0a5b47;
+  --primary-foreground: #ffffff;
+  --accent: #0d6e56;
+  --accent-foreground: #ffffff;
+  --ring: #0d6e56;
+  --danger: #9e2a2a;
+  --danger-foreground: #ffffff;
+  --danger-solid: #9e2a2a;
+  --danger-solid-foreground: #ffffff;
+  --nav-active: #e7f4ef;
+  --nav-active-foreground: #0d6e56;
+  --card-shadow: 0 1px 2px rgb(31 26 20 / 0.06), 0 16px 40px rgb(31 26 20 / 0.05);
+  --badge-admin-bg: #d5efe6;
+  --badge-admin-fg: #084838;
+  --badge-gerente-bg: #d9e6f7;
+  --badge-gerente-fg: #1a365d;
+  --badge-caixa-bg: #f8e7c8;
+  --badge-caixa-fg: #6a3e00;
+  --badge-garcom-bg: #e6def8;
+  --badge-garcom-fg: #3d2a66;
+  --badge-cozinha-bg: #f8dcd3;
+  --badge-cozinha-fg: #6e2c1a;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #141210;
+  --surface: #1f1c18;
+  --surface-muted: #2a261f;
+  --sidebar: #1a1815;
+  --foreground: #f7f2ea;
+  --muted: #c4b6a6;
+  --border: #3a342c;
+  --border-strong: #8a8176;
+  --primary: #157a64;
+  --primary-hover: #0f6a58;
+  --primary-foreground: #ffffff;
+  --accent: #5ec8a6;
+  --accent-foreground: #10241c;
+  --ring: #5ec8a6;
+  --danger: #f0b4b4;
+  --danger-foreground: #2a1010;
+  --danger-solid: #9e2a2a;
+  --danger-solid-foreground: #ffffff;
+  --nav-active: #16352c;
+  --nav-active-foreground: #5ec8a6;
+  --card-shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 16px 40px rgb(0 0 0 / 0.28);
+  --badge-admin-bg: #14382e;
+  --badge-admin-fg: #b7ebda;
+  --badge-gerente-bg: #1a2c44;
+  --badge-gerente-fg: #c5d9f5;
+  --badge-caixa-bg: #3d2e14;
+  --badge-caixa-fg: #f6d7a2;
+  --badge-garcom-bg: #2c2440;
+  --badge-garcom-fg: #ddd0f7;
+  --badge-cozinha-bg: #3d241c;
+  --badge-cozinha-fg: #f6c7b8;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-sidebar: var(--sidebar);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-ring: var(--ring);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-solid: var(--danger-solid);
+  --color-danger-solid-foreground: var(--danger-solid-foreground);
+  --color-nav-active: var(--nav-active);
+  --color-nav-active-foreground: var(--nav-active-foreground);
+  --shadow-card: var(--card-shadow);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html,
+  body {
+    background: var(--background);
+    color: var(--foreground);
+  }
+
+  body {
+    min-height: 100dvh;
+    font-family: var(--font-sans);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 28%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
